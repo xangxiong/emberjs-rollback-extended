@@ -1,6 +1,9 @@
 # emberjs-rollback-extended
 The EmberJS Rollback Extended mixin adds rollback support for EmberData relationships.  This mixin supports both deep and shallow relationship rollback.
 
+## Supported Ember and EmberData versions
+- Tested on Ember 2.11.2 and EmberData 2.11.2
+
 ## Deep Relationship
 Deep relationships will make the model referencing it dirty if the below scenario occurrs.
 
