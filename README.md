@@ -21,25 +21,62 @@ Shallow relationships will only make the model referencing it dirty if the below
 ## Usage
 The Rollback Extended mixin assumes that RequireJS is being used to load these JS files.  To apply the mixin to all DS.Model, load the `rollback-extended`.  Otherwise add the `rollback-extended-mixin` to any model needing this feature.
 
-	// apply the mixin for all models
+### Mixin for All
+
 	require([
+		"ember-data",
 		"rollback-extended"
 	], function(
+		DS,
 		RollbackExtended
 	) {
 		// proceed with model creation
-	})
+		var User = DS.Model.extend({
+			// model property definition
+		});
+	});
 
-	// apply the mixin for only a select model
+### Mixin for Selected Model
+
 	require([
+		"ember-data"
                 "rollback-extended-mixin"
         ], function(
+		DS,
                 RollbackExtendedMixin
         ) {
                 // proceed with model creation
 		var User = DS.Model.extend(RollbackExtendedMixin, {
-
+			// model property definition
 		});
-        })
+        });
 
+### Defining Deep Relationships
+All relationships will default to **Shallow** unless specifically defined to be **Deep**.
+
+	require([
+		"ember-data",
+                "rollback-extended-mixin"
+        ], function(
+		DS,
+                RollbackExtendedMixin
+        ) {
+                // proceed with model creation
+                var User = DS.Model.extend(RollbackExtendedMixin, {
+                        // define deep relationships
+			deepRelationships: ["options"],
+
+			// model property definition
+			name: DS.attr("string"),
+			picture: DS.belongsTo('picture'),
+			options: DS.hasMany('option')
+                });
+        });
+
+### Rollback Model
+Just call the `model.rollback` method for the model intended to be rollback.  All **Deep** relationship will also have their respective `rollback` method call as well.
+	
+	if(model.get("isDirty")) {
+		model.rollback();
+	}
 
