@@ -1,0 +1,26 @@
+{
+  "name": "emberjs-rollback-extended",
+  "description": "EmberJS Rollback Extended",
+  "authors": [
+    "Xang Xiong (xang.xiong.email@gmail.com)"
+  ],
+  "main": [
+	"rollback-extended.js"
+  ],
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+	"ember": "~2",
+	"ember-data": "~2",
+	"requirejs": "~2",
+	"handlebars": "~4",
+	"jquery": "~2"
+  }
+}
