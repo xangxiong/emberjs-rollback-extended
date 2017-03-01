@@ -3,26 +3,16 @@ requirejs.config({
 	paths: {
 		'jquery'							: '../../bower_components/jquery/dist/jquery',
 		'handlebars'						: '../../bower_components/handlebars/handlebars.amd',
-		'ember'								: '../../bower_components/ember/ember',
-		'ember-template-compiler'			: '../../bower_components/ember/ember-template-compiler',
+		'ember'								: '../../bower_components/ember/ember.debug',
 		'ember-data'						: '../../bower_components/ember-data/ember-data',
-		'text'								: '../../bower_components/text/text',
-		
+		'qunit'								: '../../bower_components/qunit/qunit/qunit',
 		'rollback-extended'					: '../../rollback-extended',
 		'rollback-extended-mixin'			: '../../rollback-extended-mixin',
 		
-		'templates'							: 'templates'
+		'tests'								: 'tests'
 	},
 	shim: {
 		'jquery': {
-			'exports'				: '$'
-		},
-		'jquery-ui': {
-			'deps'					: ['jquery'],
-			'exports'				: '$.ui'
-		},
-		'text':	{
-			'deps'					: ['jquery'],
 			'exports'				: '$'
 		},
 		'ember': {
@@ -33,19 +23,25 @@ requirejs.config({
 			'deps'					: ['ember'],
 			'exports'				: 'DS'
 		},
-		'ember-template-compiler' : {
-			'deps'					: ['ember'],
-			'exports'				: 'Ember'
+		'qunit'						: {
+			'deps'					: ['jquery'],
+			'exports'				: 'QUnit'
 		}
 	}
 });
 
 define([
+	'ember',
+	'ember-data',
 	'app',
-	'router'
+	'rollback-extended',
+	'tests/unit/rollback-extended'
 ], function(
+	Ember,
+	EmberData,
 	App,
-	Router
+	RollbackExtended,
+	RollbackExtendedTest
 ) {
 	
 });

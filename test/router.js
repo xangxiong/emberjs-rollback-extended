@@ -1,17 +1,15 @@
 define([
 	'ember',
 	'jquery',
-	'app',
-	'app/routes/index'
+	'app'
 ], function(
 	Ember,
 	jQuery,
-	App,
-	AppIndexRoute
+	App
 ) {
 	App.Router = Ember.Router.extend({});
 	App.Router.map(function() {
-		this.route('index');
+		
 	});
 	
 	return App.Router;
