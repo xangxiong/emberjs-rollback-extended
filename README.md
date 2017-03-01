@@ -19,4 +19,27 @@ Shallow relationships will only make the model referencing it dirty if the below
 - HasMany content is changed
 
 ## Usage
+The Rollback Extended mixin assumes that RequireJS is being used to load these JS files.  To apply the mixin to all DS.Model, load the `rollback-extended`.  Otherwise add the `rollback-extended-mixin` to any model needing this feature.
+
+	// apply the mixin for all models
+	require([
+		"rollback-extended"
+	], function(
+		RollbackExtended
+	) {
+		// proceed with model creation
+	})
+
+	// apply the mixin for only a select model
+	require([
+                "rollback-extended-mixin"
+        ], function(
+                RollbackExtendedMixin
+        ) {
+                // proceed with model creation
+		var User = DS.Model.extend(RollbackExtendedMixin, {
+
+		});
+        })
+
 

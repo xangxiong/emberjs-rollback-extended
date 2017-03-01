@@ -1,7 +1,7 @@
 define([
 	'ember',
 	'ember-data',
-	'application/models/rollback-extended-mixin'
+	'rollback-extended-mixin'
 ], function(
 	Ember,
 	EmberData,
