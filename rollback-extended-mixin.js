@@ -330,6 +330,19 @@ return Ember.Mixin.create({
 		return ret;
 	},
 	
+	save: function(options) {
+		var self = this;
+		var promise = this._super.apply(this, arguments);
+		
+		promise.then(function() {
+			// we will need to clear the dirty tracking
+			self.set('_dirtyRelationships', Ember.A());
+			self.set('isDirty', false);
+		});
+		
+		return promise;
+	},
+	
 	/**
 	 * Register the observer under the given key
 	 * */
@@ -365,6 +378,8 @@ return Ember.Mixin.create({
 	_belongsToDirtyChecker: function(key, sender) {
 		var self = this;
 		
+		console.log('belongs to dirty checker');
+		
 		if(this.get('observerEnabled')) {
 			var checker = function(current_val) {
 				if(self.isDeepRelationship(key)) {
@@ -389,7 +404,8 @@ return Ember.Mixin.create({
 			};
 			
 			var current_val = this.get(key);
-			if(current_list && current_list.get('isLoaded')) {
+			
+			if(!current_val || (current_val && current_val.get('isLoaded'))) {
 				checker(current_val);
 			} else {
 				$.when(this.get(key)).then(checker);
@@ -433,7 +449,7 @@ return Ember.Mixin.create({
 			};
 			
 			var current_list = this.get(key);
-			if(current_list && current_list.get('isLoaded')) {
+			if(!current_list || (current_list && current_list.get('isLoaded'))) {
 				// this value is already loaded
 				checker(current_list.currentState);
 			} else {

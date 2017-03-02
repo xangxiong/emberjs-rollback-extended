@@ -22,7 +22,8 @@ define([
 	
 	QUnit.module('rollback-extended-sync', {
 		
-	}, function() {		
+	}, function() {
+		// 1. prepare the models to be use for all test cases
 		var user = store.createRecord('user', {
 			id: generateUuid(),
 			name: 'Xang',
@@ -49,26 +50,55 @@ define([
 		user.get('options').invoke('save');
 		user.save();
 		
-		// start queuing up all test cases
-		QUnit.test('shallow belongsto update', function(assert) {
+		// 2. start queuing up all test cases		
+		QUnit.test('shallow sync belongsto update', function(assert) {
+			// 1. test property update on shallow belongsto relationship
 			user.get('picture').set('url', 'https://test.io/xang-updated.jpg');
 			
 			assert.equal(user.get('picture').get('isDirty'), true, 'picture is dirty');
 			assert.equal(user.get('picture').get('url'), 'https://test.io/xang-updated.jpg', 'picture url has been updated successfully');
-			assert.equal(user.get('isDirty'), false, 'user should not be dirty');
+			assert.equal(user.get('isDirty'), false, 'user should not be dirty by picture url update');
 			
 			// rollback the user and picture
-			user.rollback();
 			user.get('picture').rollback();
+			user.rollback();			
 			
 			assert.equal(user.get('picture').get('isDirty'), false, 'picture should not be dirty, rollback successfull');
 			assert.equal(user.get('picture').get('url'), 'https://test.io/xang.jpg', 'picture url has been reverted successfully');
 			
+			// 2. test shallow belongsto nullify
+			user.set('picture', null);
+			
+			assert.equal(user.get('picture'), null, 'picture has been nullify');
+			assert.equal(user.get('isDirty'), true, 'user was dirty by picture being nullify');
+			
+			// rollback the user and picture
+			user.rollback();
+			
+			assert.equal(user.get('isDirty'), false, 'user should not be dirty, rollback successfull');
+			
+			// 3. test shallow belongsto swap
+			var new_picture = store.createRecord('picture', {
+				id: generateUuid(),
+				url: 'https://test.io/xang2.jpg'
+			});
+			
+			user.set('picture', new_picture);
+			
+			assert.equal(user.get('picture').get('url'), 'https://test.io/xang2.jpg', 'picture has been swapped');
+			assert.equal(user.get('isDirty'), true, 'user was dirty by picture being swapped');
+			
+			// rollback the user and picture
+			user.rollback();
+			new_picture.destroyRecord();
+			
+			assert.equal(user.get('isDirty'), false, 'user should not be dirty, rollback successfull');
+			
 			// we expect this many assertion to run
-			assert.expect(5);
+			assert.expect(11);
 		});
 		
-		QUnit.test('shallow hasmany update', function(assert) {
+		QUnit.test('shallow sync hasmany update', function(assert) {
 			// prevent other test from running until done is trigger
 			var option = user.get('options').findBy('name', 'icon');
 			
