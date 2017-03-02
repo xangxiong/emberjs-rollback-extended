@@ -5,6 +5,7 @@ requirejs.config({
 		'handlebars'						: '../../bower_components/handlebars/handlebars.amd',
 		'ember'								: '../../bower_components/ember/ember.debug',
 		'ember-data'						: '../../bower_components/ember-data/ember-data',
+		'pure-uuid'							: '../../bower_components/pure-uuid/uuid',
 		'qunit'								: '../../bower_components/qunit/qunit/qunit',
 		'rollback-extended'					: '../../rollback-extended',
 		'rollback-extended-mixin'			: '../../rollback-extended-mixin',
@@ -23,6 +24,10 @@ requirejs.config({
 			'deps'					: ['ember'],
 			'exports'				: 'DS'
 		},
+		'pure-uuid': {
+			'deps'					: ['jquery'],
+			'exports' 				: 'UUID'
+		},
 		'qunit'						: {
 			'deps'					: ['jquery'],
 			'exports'				: 'QUnit'
@@ -34,14 +39,32 @@ define([
 	'ember',
 	'ember-data',
 	'app',
-	'rollback-extended',
-	'tests/unit/rollback-extended'
+	'qunit',
+	'rollback-extended'
 ], function(
 	Ember,
 	EmberData,
 	App,
-	RollbackExtended,
-	RollbackExtendedTest
+	QUnit,
+	RollbackExtended
 ) {
+	// stop the application from proceeding until we load our services
+	App.deferReadiness();
 	
+	Ember.Application.initializer({
+		name: 'service_initializer',
+		initialize: function(application) {
+			application.advanceReadiness();
+			
+			// load the tests
+			require([
+				'tests/unit/rollback-extended'
+			], function(
+				RollbackExtendedTest		
+			) {
+				// start the QUnit testing
+				QUnit.start();
+			});
+		}
+	})
 });
