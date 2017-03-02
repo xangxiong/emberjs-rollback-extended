@@ -15,8 +15,12 @@ define([
 		deepRelationship: ['options'],
 		
 		name: EmberData.attr('string'),
-		picture: EmberData.belongsTo('picture'),
-		options: EmberData.hasMany('option')
+		picture: EmberData.belongsTo('picture', {
+			async: false
+		}),
+		options: EmberData.hasMany('option', {
+			async: false
+		})
 	});
 	
 	// register this model
