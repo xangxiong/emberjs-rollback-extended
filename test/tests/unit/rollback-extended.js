@@ -20,7 +20,9 @@ define([
 		return (new PureUUid(1)).format();
 	};
 	
-	QUnit.module('rollback-extended-sync', {}, function() {
+	QUnit.module('rollback-extended-sync', {
+		
+	}, function() {		
 		var user = store.createRecord('user', {
 			id: generateUuid(),
 			name: 'Xang',
@@ -42,11 +44,12 @@ define([
 			]
 		});
 		
-		// save these records so that we start with a fresh state
-		user.save();
+		// save these records so that we start with a fresh state		
 		user.get('picture').save();
 		user.get('options').invoke('save');
+		user.save();
 		
+		// start queuing up all test cases
 		QUnit.test('shallow belongsto update', function(assert) {
 			user.get('picture').set('url', 'https://test.io/xang-updated.jpg');
 			
@@ -54,14 +57,29 @@ define([
 			assert.equal(user.get('picture').get('url'), 'https://test.io/xang-updated.jpg', 'picture url has been updated successfully');
 			assert.equal(user.get('isDirty'), false, 'user should not be dirty');
 			
-			// rollback the picture
+			// rollback the user and picture
+			user.rollback();
 			user.get('picture').rollback();
 			
 			assert.equal(user.get('picture').get('isDirty'), false, 'picture should not be dirty, rollback successfull');
 			assert.equal(user.get('picture').get('url'), 'https://test.io/xang.jpg', 'picture url has been reverted successfully');
 			
-			// number of test expected to run
+			// we expect this many assertion to run
 			assert.expect(5);
+		});
+		
+		QUnit.test('shallow hasmany update', function(assert) {
+			// prevent other test from running until done is trigger
+			var option = user.get('options').findBy('name', 'icon');
+			
+			option.set('value', 'updated test icon');
+			
+			assert.equal(option.get('isDirty'), true, 'option is dirty');
+			assert.equal(option.get('value'), 'updated test icon', 'option value has been updated successfully');
+			assert.equal(user.get('isDirty'), true, 'user is dirty');
+			
+			// we expect this many assertion to run
+			assert.expect(3);
 		});
 	});
 });

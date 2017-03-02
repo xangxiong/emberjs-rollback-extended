@@ -48,9 +48,6 @@ define([
 	QUnit,
 	RollbackExtended
 ) {
-	// stop the application from proceeding until we load our services
-	App.deferReadiness();
-	
 	Ember.Application.initializer({
 		name: 'service_initializer',
 		initialize: function(application) {

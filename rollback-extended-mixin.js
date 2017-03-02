@@ -11,6 +11,9 @@ return Ember.Mixin.create({
 	// deep tracked relationships implies that if the models in the relationship has been dirty, the model referring to it will be dirty as well.
 	deepRelationships: [],
 	
+	// current dirty state
+	isDirty: false,
+	
 	// the cached of all relationships that are not deep relationships
 	// shallow tracked relationship will only make the model referring to it dirty if the relationship has been updated.
 	// belongsTo => the relationship is changed, belongsTo=val1 => belongsTo=val2
@@ -48,16 +51,8 @@ return Ember.Mixin.create({
 		Ember.run.once(this, function() {
 			this._captureRelationships();
 			this._startObservers();
-		});		
-		
-		// trigger the get of isDirty to activate the the computed property
-		this.get('isDirty');
+		});
 	}.on('init'),
-	
-	isDirty: function() {
-		// @note: hasDirtyAttributes is a computed property base on currentState.isDirty (ember-data.js line 3447)
-		return this.get('hasDirtyAttributes') || this.get('hasDirtyRelationships') || this.get('isDeleted') || this.get('isNew');
-	}.property('currentState.isDirty', '_dirtyRelationships.[]', 'isDeleted', 'isNew'),
 	
 	rollbackInProgress: function() {
 		return this.get('_rollingback') === true;
@@ -309,7 +304,7 @@ return Ember.Mixin.create({
 		var current_value = this.get(key);
 		
 		$.when(current_value).then(function(current_value) {
-			if(current_value !== value && meta && self.isDeepRelationship(key)) {				
+			if(current_value !== value && self.isDeepRelationship(key)) {				
 				// this is a relationship property, we will need to remove the current observer for the current relationship
 				this._removeKeyObserver(key);
 			}
@@ -318,17 +313,15 @@ return Ember.Mixin.create({
 		// if the key is a deep relationship, we will have to remove existing observer from the current value and add new observer to the new value
 		var ret = this._super.apply(this, arguments);
 		
-		if(meta) {
-			// manually trigger the dirty checker base on the relationship type
-			if(meta.kind === 'belongsTo') {
-				this._belongsToDirtyChecker(key, this);
-			} else if(meta.kind === 'hasMany') {
-				this._hasManyDirtyChecker(key, this);
-			}
+		// manually trigger the dirty checker base on the relationship type
+		if(meta.kind === 'belongsTo') {
+			this._belongsToDirtyChecker(key, this);
+		} else if(meta.kind === 'hasMany') {
+			this._hasManyDirtyChecker(key, this);
 		}
 		
 		$.when(current_value).then(function(current_value) {
-			if(current_value !== value && meta && self.isDeepRelationship(key)) {
+			if(current_value !== value && self.isDeepRelationship(key)) {
 				// initialize the new observers
 				this._initializeObserver(key, meta);
 			}
@@ -373,7 +366,7 @@ return Ember.Mixin.create({
 		var self = this;
 		
 		if(this.get('observerEnabled')) {
-			$.when(this.get(key)).then(function(current_val) {
+			var checker = function(current_val) {
 				if(self.isDeepRelationship(key)) {
 					if(current_val && current_val.get('isDirty')) {
 						if(!self.get('_dirtyRelationships').includes(key)) {
@@ -393,7 +386,14 @@ return Ember.Mixin.create({
 						self.get('_dirtyRelationships').addObject(key);
 					}
 				}
-			});
+			};
+			
+			var current_val = this.get(key);
+			if(current_list && current_list.get('isLoaded')) {
+				checker(current_val);
+			} else {
+				$.when(this.get(key)).then(checker);
+			}
 		}
 	},
 	
@@ -404,7 +404,8 @@ return Ember.Mixin.create({
 		var self = this;
 		
 		if(this.get('observerEnabled')) {
-			$.when(this.get(key)).then(function(current_list) {
+			// @todo using when here makes this process no-sync, which produces a race condition on the isDirty check
+			var checker = function(current_list) {
 				if(self.isDeepRelationship(key)) {
 					let dirty_ids = self.get(key).without(undefined).filterBy('isDirty', true).sortBy('id').mapBy('id');
 					dirty_ids = (dirty_ids === null || dirty_ids === undefined) ? [] : dirty_ids;
@@ -429,7 +430,17 @@ return Ember.Mixin.create({
 						self.get('_dirtyRelationships').addObject(key);
 					}
 				}
-			});
+			};
+			
+			var current_list = this.get(key);
+			if(current_list && current_list.get('isLoaded')) {
+				// this value is already loaded
+				checker(current_list.currentState);
+			} else {
+				// fall back to wait for the value to load
+				// we don't expect this to happen at all since the only time the dirty checker is call is when something has already been loaded and updated
+				$.when(current_list).then(checker);
+			}
 		}
 	},
 	
@@ -438,6 +449,18 @@ return Ember.Mixin.create({
 	 * */
 	_startObservers: function() {		
 		var self = this;
+		
+		// we will have to track and set the isDirty without using a computed property since there are cases where a computed property will not trigger an observer
+		// if the property has not been fetch yet
+		var dirtyHandler = function() {
+			self.set('isDirty', self.get('hasDirtyAttributes') || self.get('hasDirtyRelationships') || self.get('isDeleted') || self.get('isNew'));
+		};
+		
+		// add the observer for dirty change tracking
+		this.addObserver('currentState.isDirty', dirtyHandler);
+		this.addObserver('_dirtyRelationships.[]', dirtyHandler);
+		this.addObserver('isDeleted', dirtyHandler);
+		this.addObserver('isNew', dirtyHandler);
 		
 		this.eachRelationship(function(key, meta) {
 			self._initializeObserver(key, meta);
@@ -474,9 +497,10 @@ return Ember.Mixin.create({
 					self._addKeyObserver(key, self, key + '.isDirty', self._belongsToDirtyChecker);
 				}
 			}
-		} else if(meta.kind === 'hasMany') {				
+		} else if(meta.kind === 'hasMany') {
+			let hasMany = self.hasMany(key);
+			
 			if(meta.options.async) {
-				let hasMany = self.hasMany(key);
 				let key_observer = key;
 				
 				if(self.isDeepRelationship(key)) {
@@ -500,7 +524,7 @@ return Ember.Mixin.create({
 					};
 				}
 			} else if(self.isDeepRelationship(key)) {
-				self._addKeyObserver(key, self, key + '.@each.isDirty', self._hasManyDirtyChecker);
+				self._addKeyObserver(key, self, key + '.@each.isDirty', self._hasManyDirtyChecker);				
 			} else {
 				self._addKeyObserver(key, self, key + '.[]', self._hasManyDirtyChecker);
 			}

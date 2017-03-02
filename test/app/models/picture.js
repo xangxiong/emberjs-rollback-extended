@@ -8,7 +8,11 @@ define([
 	App
 ) {
 	App.PictureModel = EmberData.Model.extend({
-		url: EmberData.attr('string')
+		url: EmberData.attr('string'),
+		user: EmberData.belongsTo('user', {
+			inverse: 'picture',
+			async: false
+		})
 	});
 	
 	// register this model

@@ -15,6 +15,8 @@ define([
 		LOG_VERSION: true,
 		debugMode: true
 	});
+	// stop the application from proceeding until we load our services
+	App.deferReadiness();
 	
 	// generate hash storage
 	var storage = {};

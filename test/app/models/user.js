@@ -12,13 +12,15 @@ define([
 	AppOptionModel
 ) {
 	App.UserModel = EmberData.Model.extend({
-		deepRelationship: ['options'],
+		deepRelationships: ['options'],
 		
 		name: EmberData.attr('string'),
 		picture: EmberData.belongsTo('picture', {
+			inverse: 'user',
 			async: false
 		}),
 		options: EmberData.hasMany('option', {
+			inverse: 'user',
 			async: false
 		})
 	});

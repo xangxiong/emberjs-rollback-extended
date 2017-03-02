@@ -9,7 +9,12 @@ define([
 ) {
 	App.OptionModel = EmberData.Model.extend({
 		name: EmberData.attr('string'),
-		value: EmberData.attr('string')
+		value: EmberData.attr('string'),
+		
+		user: EmberData.belongsTo('user', {
+			inverse: 'options',
+			async: false
+		})
 	});
 	
 	// register this model
