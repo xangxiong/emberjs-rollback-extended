@@ -21,8 +21,15 @@ define([
 	// generate hash storage
 	var storage = {};
 	
+	App.ApplicationSerializer = EmberData.RESTSerializer.extend(EmberData.EmbeddedRecordsMixin, {});
+	App.register('serializer:default', App.ApplicationSerializer, {
+		singleton: true,
+		instantiate: true
+	});
+	
 	// custom local adapter to be use only for testing
 	App.ApplicationAdapter = EmberData.Adapter.extend({
+		//defaultSerializer: 'default',
 		findRecord: function(store, type, id, snapshot) {
 			if(!storage[type]) {
 				storage[type] = {};

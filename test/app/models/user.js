@@ -3,13 +3,15 @@ define([
 	'ember-data',
 	'app',
 	'app/models/picture',
-	'app/models/option'
+	'app/models/option',
+	'app/serializers/user'
 ], function(
 	Ember,
 	EmberData,
 	App,
 	AppPictureModel,
-	AppOptionModel
+	AppOptionModel,
+	AppUserSerializer
 ) {
 	App.UserModel = EmberData.Model.extend({
 		deepRelationships: ['options'],
@@ -19,9 +21,18 @@ define([
 			inverse: 'user',
 			async: false
 		}),
+		async_picture: EmberData.belongsTo('picture', {
+			inverse: 'async_user',
+			async: true
+		}),
+		
 		options: EmberData.hasMany('option', {
 			inverse: 'user',
 			async: false
+		}),
+		async_options: EmberData.hasMany('option', {
+			inverse: 'async_user',
+			async: true
 		})
 	});
 	

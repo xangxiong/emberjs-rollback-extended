@@ -1,11 +1,13 @@
 define([
 	'ember',
 	'ember-data',
-	'app'
+	'app',
+	'app/serializers/option'
 ], function(
 	Ember,
 	EmberData,
-	App
+	App,
+	AppOptionSerializer
 ) {
 	App.OptionModel = EmberData.Model.extend({
 		name: EmberData.attr('string'),
@@ -14,6 +16,11 @@ define([
 		user: EmberData.belongsTo('user', {
 			inverse: 'options',
 			async: false
+		}),
+		
+		async_user: EmberData.belongsTo('user', {
+			inverse: 'async_options',
+			async: true
 		})
 	});
 	

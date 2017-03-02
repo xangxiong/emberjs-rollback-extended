@@ -1,17 +1,23 @@
 define([
 	'ember',
 	'ember-data',
-	'app'
+	'app',
+	'app/serializers/picture'
 ], function(
 	Ember,
 	EmberData,
-	App
+	App,
+	AppPictureSerializer
 ) {
 	App.PictureModel = EmberData.Model.extend({
 		url: EmberData.attr('string'),
 		user: EmberData.belongsTo('user', {
 			inverse: 'picture',
 			async: false
+		}),
+		async_user: EmberData.belongsTo('user', {
+			inverse: 'async_picture',
+			async: true
 		})
 	});
 	
