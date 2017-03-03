@@ -120,14 +120,14 @@
 				var meta = self.relationshipFor(key);
 				
 				if(meta.kind === 'belongsTo') {
-					let belongsTo = self.belongsTo(key);
+					var belongsTo = self.belongsTo(key);
 					
 					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, false);
 					}
 				} else if(meta.kind === 'hasMany') {
-					let hasMany = self.hasMany(key);
+					var hasMany = self.hasMany(key);
 					
 					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
 						// this hasmany is already loaded, we can rollback
@@ -144,14 +144,14 @@
 				var meta = self.relationshipFor(key);
 				
 				if(meta.kind === 'belongsTo') {
-					let belongsTo = self.belongsTo(key);
+					var belongsTo = self.belongsTo(key);
 					
 					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, true);
 					}
 				} else if(meta.kind === 'hasMany') {
-					let hasMany = self.hasMany(key);
+					var hasMany = self.hasMany(key);
 					
 					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
 						// this hasmany is already loaded, we can rollback
@@ -172,7 +172,7 @@
 		 * */
 		_rollbackBelongsTo: function(key, deep) {
 			var self = this;
-			let meta = this.relationshipFor(key);
+			var meta = this.relationshipFor(key);
 			
 			deep = deep || false;		
 			
@@ -215,7 +215,7 @@
 		 * */
 		_rollbackHasMany: function(key, deep) {
 			var self = this;
-			let meta = this.relationshipFor(key);
+			var meta = this.relationshipFor(key);
 			
 			deep = deep || false;
 			
@@ -259,7 +259,7 @@
 					self.get('_originalRelationships').set(key, undefined);
 					
 					if(meta.options.async) {
-						let belongsTo = self.belongsTo(key);
+						var belongsTo = self.belongsTo(key);
 						
 						if(belongsTo.belongsToRelationship.hasLoaded) {
 							// this async property is already loaded, we should start capture it
@@ -284,7 +284,7 @@
 							};
 						}
 					} else {
-						let val = self.get(key);
+						var val = self.get(key);
 						val = (val) ? val.get('id') : undefined;
 						
 						self.get('_originalRelationships').set(key, val);
@@ -293,7 +293,7 @@
 					self.get('_originalRelationships').set(key, []);
 					
 					if(meta.options.async) {
-						let hasMany = self.hasMany(key);
+						var hasMany = self.hasMany(key);
 						
 						if(hasMany.hasManyRelationship.hasLoaded) {
 							// this async property is already loaded, we should start capture it
@@ -401,11 +401,11 @@
 				var meta = self.relationshipFor(key);
 				
 				if(meta.kind === 'belongsTo') {
-					let belongsTo = self.belongsTo(key);
+					var belongsTo = self.belongsTo(key);
 					
 					if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
 						// this belongsto is already loaded, we can save
-						let val = self.get(key);
+						var val = self.get(key);
 						if(meta.options.async && val) {
 							val = val.get('content');
 						}
@@ -415,11 +415,11 @@
 						}
 					}
 				} else if(meta.kind === 'hasMany') {
-					let hasMany = self.hasMany(key);
+					var hasMany = self.hasMany(key);
 					
 					if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
 						// this hasmany is already loaded, we can rollback
-						let list = self.get(key);
+						var list = self.get(key);
 						if(meta.options.async && list) {
 							list = list.get('content');
 						}
@@ -504,7 +504,7 @@
 						}
 					}
 					
-					let current_id = (current_val) ? current_val.get('id') : undefined;
+					var current_id = (current_val) ? current_val.get('id') : undefined;
 					
 					if(Ember.isEqual(current_id, self.get('_originalRelationships.' + key))) {
 						self.get('_dirtyRelationships').removeObject(key);
@@ -536,7 +536,7 @@
 				// @todo using when here makes this process no-sync, which produces a race condition on the isDirty check
 				var checker = function(current_list) {
 					if(self.isDeepRelationship(key)) {
-						let dirty_ids = self.get(key).without(undefined).filterBy('isDirty', true).sortBy('id').mapBy('id');
+						var dirty_ids = self.get(key).without(undefined).filterBy('isDirty', true).sortBy('id').mapBy('id');
 						dirty_ids = (dirty_ids === null || dirty_ids === undefined) ? [] : dirty_ids;
 						
 						if(dirty_ids.length > 0) {
@@ -549,10 +549,10 @@
 						}
 					}
 					
-					let current_ids = current_list.without(undefined).filterBy('isDeleted', false).sortBy('id').mapBy('id');
+					var current_ids = current_list.without(undefined).filterBy('isDeleted', false).sortBy('id').mapBy('id');
 					current_ids = current_ids || [];
 					
-					let original_ids = self.get('_originalRelationships').get(key);
+					var original_ids = self.get('_originalRelationships').get(key);
 					original_ids = original_ids || [];
 					
 					// check this with the original value to see if we should flag this as dirty
@@ -609,7 +609,7 @@
 				// we only care about observing deep belongsto
 				if(self.isDeepRelationship(key)) {
 					if(meta.options.async) {
-						let belongsTo = self.belongsTo(key);
+						var belongsTo = self.belongsTo(key);
 						
 						if(belongsTo.belongsToRelationship.hasLoaded) {
 							// this async property is already loaded, we should start monitoring it
@@ -630,10 +630,10 @@
 					}
 				}
 			} else if(meta.kind === 'hasMany') {
-				let hasMany = self.hasMany(key);
+				var hasMany = self.hasMany(key);
 				
 				if(meta.options.async) {
-					let key_observer = key;
+					var key_observer = key;
 					
 					if(self.isDeepRelationship(key)) {
 						key_observer = 'content.@each.isDirty';
