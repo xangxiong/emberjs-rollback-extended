@@ -18,9 +18,11 @@
   ],
   "dependencies": {
 	"ember": "~2",
-	"ember-data": "~2",
-	"requirejs": "~2.3",
-	"jquery": "~2.2",
+	"ember-data": "~2",	
+	"jquery": "~2"
+  },
+  "devDependencies": {
+	"requirejs": "~2",
 	"pure-uuid": "1.4.2",
 	"qunit": "~1"
   }
