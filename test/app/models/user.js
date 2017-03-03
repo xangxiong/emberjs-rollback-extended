@@ -14,7 +14,7 @@ define([
 	AppUserSerializer
 ) {
 	App.UserModel = EmberData.Model.extend({
-		deepRelationships: ['options'],
+		deepRelationships: ['options', 'async_options'],
 		
 		name: EmberData.attr('string'),
 		picture: EmberData.belongsTo('picture', {

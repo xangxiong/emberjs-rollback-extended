@@ -90,7 +90,7 @@ define([
 			
 			// rollback the user and picture
 			user.get('picture').rollback();
-			user.rollback();			
+			user.rollback();
 			
 			assert.equal(user.get('picture').get('isDirty'), false, 'picture should not be dirty, rollback successfull');
 			assert.equal(user.get('picture').get('url'), 'https://test.io/xang.jpg', 'picture url has been reverted successfully');
@@ -128,9 +128,11 @@ define([
 		});
 		
 		QUnit.test('shallow async belongsto update', function(assert) {
-			// 1. test property update on shallow belongsto relationship
+			// prep for async testing
 			var done = assert.async();
+			
 			Ember.RSVP.Promise.resolve(async_user.get('async_picture')).then(function(async_picture) {
+				// 1. test property update on shallow belongsto relationship
 				async_picture.set('url', 'https://test.io/xang-async-updated.jpg');
 				
 				assert.equal(async_user.get('async_picture').get('isDirty'), true, 'async picture is dirty');

@@ -303,12 +303,24 @@ return Ember.Mixin.create({
 		
 		var current_value = this.get(key);
 		
-		$.when(current_value).then(function(current_value) {
-			if(current_value !== value && self.isDeepRelationship(key)) {				
-				// this is a relationship property, we will need to remove the current observer for the current relationship
+		if(this.isDeepRelationship(key)) {
+			if(meta.options.async) {
+				if(current_value.get('isFulfilled') && current_val.get('content') !== value) {
+					// remove all observer for this key
+					this._removeKeyObserver(key);
+				} else {
+					$.when(current_value).then(function(current_value) {
+						if(current_value !== value) {
+							// remove all observer for this key
+							self._removeKeyObserver(key);
+						}
+					});
+				}
+			} else if(current_value !== value) {				
+				// remove all observer for this key
 				this._removeKeyObserver(key);
 			}
-		});
+		}
 		
 		// if the key is a deep relationship, we will have to remove existing observer from the current value and add new observer to the new value
 		var ret = this._super.apply(this, arguments);
@@ -320,12 +332,24 @@ return Ember.Mixin.create({
 			this._hasManyDirtyChecker(key, this);
 		}
 		
-		$.when(current_value).then(function(current_value) {
-			if(current_value !== value && self.isDeepRelationship(key)) {
-				// initialize the new observers
+		if(this.isDeepRelationship(key)) {
+			if(meta.options.async) {
+				if(current_value.get('isFulfilled') && current_val.get('content') !== value) {
+					// initialize the new observer for this key
+					this._initializeObserver(key, meta);
+				} else {
+					$.when(current_value).then(function(current_value) {
+						if(current_value !== value) {
+							// initialize the new observer for this key
+							self._initializeObserver(key, meta);
+						}
+					});
+				}
+			} else if(current_value !== value) {				
+				// initialize the new observer for this key
 				this._initializeObserver(key, meta);
-			}
-		});	
+			}			
+		}
 		
 		return ret;
 	},
@@ -378,8 +402,6 @@ return Ember.Mixin.create({
 	_belongsToDirtyChecker: function(key, sender) {
 		var self = this;
 		
-		console.log('belongs to dirty checker');
-		
 		if(this.get('observerEnabled')) {
 			var checker = function(current_val) {
 				if(self.isDeepRelationship(key)) {
@@ -404,11 +426,12 @@ return Ember.Mixin.create({
 			};
 			
 			var current_val = this.get(key);
+			var meta = this.relationshipFor(key);
 			
-			if(!current_val || (current_val && current_val.get('isLoaded'))) {
-				checker(current_val);
+			if(meta.options.async) {
+				checker(current_val.get('content'));
 			} else {
-				$.when(this.get(key)).then(checker);
+				checker(current_val);
 			}
 		}
 	},
@@ -449,13 +472,12 @@ return Ember.Mixin.create({
 			};
 			
 			var current_list = this.get(key);
-			if(!current_list || (current_list && current_list.get('isLoaded'))) {
-				// this value is already loaded
-				checker(current_list.currentState);
+			var meta = this.relationshipFor(key);
+			
+			if(meta.options.async) {
+				checker(current_list.get('content'));
 			} else {
-				// fall back to wait for the value to load
-				// we don't expect this to happen at all since the only time the dirty checker is call is when something has already been loaded and updated
-				$.when(current_list).then(checker);
+				checker(current_list);
 			}
 		}
 	},
