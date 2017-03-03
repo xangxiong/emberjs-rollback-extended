@@ -562,5 +562,101 @@ define([
 				done();
 			});
 		});
+		
+		// ##
+		// 4. start queuing up all shallow save test cases
+		// ##
+		QUnit.test('shallow sync save', function(assert) {
+			var done = assert.async();
+			
+			user.get('picture').set('url', 'https://test.io/xang-updated.jpg');
+			user.get('options').findBy('name', 'icon').set('value', 'updated test icon');
+			
+			user.save().then(function() {
+				assert.equal(user.get('isDirty'), false, 'user is saved, should not be dirty');
+				assert.equal(user.get('picture').get('url'), 'https://test.io/xang-updated.jpg', 'picture url saved as updated version');
+				assert.equal(user.get('options').findBy('name', 'icon').get('value'), 'updated test icon', 'option icon saved as updated version');
+				
+				user.rollback();
+				
+				assert.equal(user.get('picture').get('url'), 'https://test.io/xang-updated.jpg', 'picture url saved as updated version, rollback does not affect');
+				assert.equal(user.get('options').findBy('name', 'icon').get('value'), 'updated test icon', 'option icon saved as updated version, rollback does not affect');
+				
+				done();
+			});
+		});
+		
+		QUnit.test('shallow async save', function(assert) {
+			var done = assert.async();
+			
+			Ember.RSVP.Promise.resolve(async_user.get('async_picture')).then(function(async_picture) {
+				async_picture.set('url', 'https://test.io/xang-updated.jpg');
+				
+				Ember.RSVP.Promise.resolve(async_user.get('async_options')).then(function(async_options) {
+					async_options.findBy('name', 'icon').set('value', 'updated test icon');
+					
+					async_user.save().then(function() {
+						assert.equal(async_user.get('isDirty'), false, 'async user is saved, should not be dirty');
+						assert.equal(async_picture.get('url'), 'https://test.io/xang-updated.jpg', 'async picture url saved as updated version');
+						assert.equal(async_options.findBy('name', 'icon').get('value'), 'updated test icon', 'async option icon saved as updated version');
+						
+						async_user.rollback();
+						
+						assert.equal(async_picture.get('url'), 'https://test.io/xang-updated.jpg', 'async picture url saved as updated version, rollback does not affect');
+						assert.equal(async_options.findBy('name', 'icon').get('value'), 'updated test icon', 'async option icon saved as updated version, rollback does not affect');
+						
+						done();
+					});
+				});
+			});
+		});
+		
+		// ##
+		// 5. start queuing up all deep save test cases
+		// ##
+		QUnit.test('deep sync save', function(assert) {
+			var done = assert.async();
+			
+			deep_user.get('deep_picture').set('url', 'https://test.io/xang-updated.jpg');
+			deep_user.get('deep_options').findBy('name', 'icon').set('value', 'updated test icon');
+			
+			deep_user.save().then(function() {
+				assert.equal(deep_user.get('isDirty'), false, 'deep user is saved, should not be dirty');
+				assert.equal(deep_user.get('deep_picture').get('url'), 'https://test.io/xang-updated.jpg', 'deep picture url saved as updated version');
+				assert.equal(deep_user.get('deep_options').findBy('name', 'icon').get('value'), 'updated test icon', 'deep option icon saved as updated version');
+				
+				deep_user.rollback();
+				
+				assert.equal(deep_user.get('deep_picture').get('url'), 'https://test.io/xang-updated.jpg', 'deep picture url saved as updated version, rollback does not affect');
+				assert.equal(deep_user.get('deep_options').findBy('name', 'icon').get('value'), 'updated test icon', 'deep option icon saved as updated version, rollback does not affect');
+				
+				done();
+			});
+		});
+		
+		QUnit.test('deep async save', function(assert) {
+			var done = assert.async();
+			
+			Ember.RSVP.Promise.resolve(deep_async_user.get('deep_async_picture')).then(function(deep_async_picture) {
+				deep_async_picture.set('url', 'https://test.io/xang-updated.jpg');
+				
+				Ember.RSVP.Promise.resolve(deep_async_user.get('deep_async_options')).then(function(deep_async_options) {
+					deep_async_options.findBy('name', 'icon').set('value', 'updated test icon');
+					
+					deep_async_user.save().then(function() {
+						assert.equal(deep_async_user.get('isDirty'), false, 'deep async user is saved, should not be dirty');
+						assert.equal(deep_async_picture.get('url'), 'https://test.io/xang-updated.jpg', 'async picture url saved as updated version');
+						assert.equal(deep_async_options.findBy('name', 'icon').get('value'), 'updated test icon', 'async option icon saved as updated version');
+						
+						deep_async_user.rollback();
+						
+						assert.equal(deep_async_picture.get('url'), 'https://test.io/xang-updated.jpg', 'async picture url saved as updated version, rollback does not affect');
+						assert.equal(deep_async_options.findBy('name', 'icon').get('value'), 'updated test icon', 'async option icon saved as updated version, rollback does not affect');
+						
+						done();
+					});
+				});
+			});
+		});
 	});
 });

@@ -31,6 +31,8 @@ return Ember.Mixin.create({
 	
 	// tracking whether a rollback is in progress
 	_rollingback: false,
+	// tracking whether a save is in progress
+	_saving: false,
 	
 	onInit: function() {
 		var self = this;
@@ -358,18 +360,71 @@ return Ember.Mixin.create({
 	
 	save: function(options) {
 		var self = this;
-		var promise = this._super.apply(this, arguments);
 		
-		promise.then(function() {
-			// we will need to clear the dirty tracking
-			self.set('_dirtyRelationships', Ember.A());
-			self.set('_originalRelationships', Ember.Object.create());
-			self.set('isDirty', false);
+		// enable the saving back flag
+		this.set('_saving', true);
+		
+		var promises = [];
+		
+		// save all deep relationships first
+		this.get('deepRelationships').forEach(function(key) {
+			var meta = self.relationshipFor(key);
 			
-			self._captureRelationships();
+			if(meta.kind === 'belongsTo') {
+				let belongsTo = self.belongsTo(key);
+				
+				if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+					// this belongsto is already loaded, we can save
+					let val = self.get(key);
+					if(meta.options.async && val) {
+						val = val.get('content');
+					}
+					
+					if(val && val.get('isDirty') && val.get('_saving') !== true) {
+						promises.push(val.save());
+					}
+				}
+			} else if(meta.kind === 'hasMany') {
+				let hasMany = self.hasMany(key);
+				
+				if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+					// this hasmany is already loaded, we can rollback
+					let list = self.get(key);
+					if(meta.options.async && list) {
+						list = list.get('content');
+					}
+					
+					if(list) {
+						list.forEach(function(val) {
+							if(val.get('isDirty') && val.get('_saving') !== true) {
+								promises.push(val.save());
+							}
+						});
+					}
+				}
+			}
 		});
 		
-		return promise;
+		promises.push(this._super.apply(this, arguments));
+		
+		return new Ember.RSVP.Promise(function(resolve, reject) {
+			Ember.RSVP.Promise.all(promises).then(function() {
+				// we will need to clear the dirty tracking
+				self.set('_dirtyRelationships', Ember.A());
+				self.set('_originalRelationships', Ember.Object.create());
+				self.set('isDirty', false);
+				
+				self._captureRelationships();
+				
+				// disable the rolling back flag
+				self.set('_saving', false);
+				
+				resolve();
+			}, function(error) {
+				self.set('_saving', false);
+				reject(error);
+			});
+		});
 	},
 	
 	/**
@@ -465,9 +520,13 @@ return Ember.Mixin.create({
 				}
 				
 				let current_ids = current_list.without(undefined).filterBy('isDeleted', false).sortBy('id').mapBy('id');
+				current_ids = current_ids || [];
+				
+				let original_ids = self.get('_originalRelationships').get(key);
+				original_ids = original_ids || [];
 				
 				// check this with the original value to see if we should flag this as dirty
-				if(Ember.isEqual(current_ids.join(','), self.get('_originalRelationships').get(key).join(','))) {
+				if(Ember.isEqual(current_ids.join(','), original_ids.join(','))) {
 					self.get('_dirtyRelationships').removeObject(key);
 				} else {
 					if(!self.get('_dirtyRelationships').includes(key)) {
