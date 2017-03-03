@@ -14,9 +14,10 @@ define([
 	AppUserSerializer
 ) {
 	App.UserModel = EmberData.Model.extend({
-		deepRelationships: ['options', 'async_options'],
+		deepRelationships: ['deep_options', 'deep_async_options', 'deep_picture', 'deep_async_picture'],
 		
 		name: EmberData.attr('string'),
+		
 		picture: EmberData.belongsTo('picture', {
 			inverse: 'user',
 			async: false
@@ -26,6 +27,15 @@ define([
 			async: true
 		}),
 		
+		deep_picture: EmberData.belongsTo('picture', {
+			inverse: 'deep_user',
+			async: false
+		}),
+		deep_async_picture: EmberData.belongsTo('picture', {
+			inverse: 'deep_async_user',
+			async: true
+		}),		
+		
 		options: EmberData.hasMany('option', {
 			inverse: 'user',
 			async: false
@@ -33,7 +43,16 @@ define([
 		async_options: EmberData.hasMany('option', {
 			inverse: 'async_user',
 			async: true
-		})
+		}),
+		
+		deep_options: EmberData.hasMany('option', {
+			inverse: 'deep_user',
+			async: false
+		}),
+		deep_async_options: EmberData.hasMany('option', {
+			inverse: 'deep_async_user',
+			async: true
+		})		
 	});
 	
 	// register this model

@@ -142,39 +142,40 @@ return Ember.Mixin.create({
 		var self = this;
 		let meta = this.relationshipFor(key);
 		
-		deep = deep || false;
+		deep = deep || false;		
 		
-		// @note using $.when here over Ember.RSVP.Promise.resolve since when will immediately fire the `then` if the value is already loaded.
-		//		 Ember.RSVP.Promise.resolve will fire the `then` in an async manner, which will not guarantee the rollback is trigger before the function finishes
-		$.when(this.get(key)).then(function(val) {
-			var current_id = undefined;
+		var val = this.get(key);
+		if(meta.options.async && val) {
+			val = val.get('content');
+		}
+		
+		var current_id = undefined;
+		
+		if(val) {
+			if(deep && val.get('isDirty') && !val.get('rollbackInProgress')) {
+				val.rollback();
+			}
 			
-			if(val) {
-				if(deep && val.get('isDirty') && !val.get('rollbackInProgress')) {
-					val.rollback();
+			current_id = val.get('id');
+		}
+		
+		// if the original value and the current value have different data, we wil replace the current value with the original value
+		var original_id = this.get('_originalRelationships').get(key);
+		
+		if(!original_id) {
+			this.set(key, undefined);
+		} else if(original_id != current_id) {				
+			var record = this.store.peekRecord(meta.type, original_id);
+			if(record) {
+				if(deep && record.get('isDirty') && !record.get('rollbackInProgress')) {
+					record.rollback();
 				}
 				
-				current_id = val.get('id');
+				this.set(key, record);
+			} else {
+				this.set(key, undefined);
 			}
-			
-			// if the original value and the current value have different data, we wil replace the current value with the original value
-			var original_id = self.get('_originalRelationships').get(key);
-			
-			if(!original_id) {
-				self.set(key, undefined);
-			} else if(original_id != current_id) {				
-				var record = self.store.peekRecord(meta.type, original_id);
-				if(record) {
-					if(deep && record.get('isDirty') && !record.get('rollbackInProgress')) {
-						record.rollback();
-					}
-					
-					self.set(key, record);
-				} else {
-					self.set(key, undefined);
-				}
-			}
-		});
+		}
 	},
 	
 	/**
@@ -186,32 +187,33 @@ return Ember.Mixin.create({
 		
 		deep = deep || false;
 		
-		// @note using $.when here over Ember.RSVP.Promise.resolve since when will immediately fire the `then` if the value is already loaded.
-		//		 Ember.RSVP.Promise.resolve will fire the `then` in an async manner, which will not guarantee the rollback is trigger before the function finishes
-		$.when(this.get(key)).then(function(list) {
-			// invokes the rollback method on every element in the list
-			if(deep) {
-				list.invoke('rollback');
-			}
+		var list = this.get(key);
+		if(meta.options.async && list) {
+			list = list.get('content');
+		}
+		
+		// invokes the rollback method on every element in the list
+		if(deep) {
+			list.invoke('rollback');
+		}
+		
+		var original_list = this.get('_originalRelationships').get(key);
+		
+		// if the original list and current list have different data, we will replace the current list with the data in the original list
+		if(!Ember.isEqual(original_list.join(','), list.sortBy('id').mapBy('id').join(','))) {
+			list.clear();
 			
-			var original_list = self.get('_originalRelationships').get(key);
-			
-			// if the original list and current list have different data, we will replace the current list with the data in the original list
-			if(!Ember.isEqual(original_list.join(','), list.sortBy('id').mapBy('id').join(','))) {
-				list.clear();
-				
-				original_list.forEach(function(id) {
-					var record = self.store.peekRecord(meta.type, id);
-					if(record) {
-						if(deep && record.get('isDirty') && !record.get('rollbackInProgress')) {
-							record.rollback();
-						}
-						
-						list.pushObject(record);
+			original_list.forEach(function(id) {
+				var record = self.store.peekRecord(meta.type, id);
+				if(record) {
+					if(deep && record.get('isDirty') && !record.get('rollbackInProgress')) {
+						record.rollback();
 					}
-				});
-			}
-		});
+					
+					list.pushObject(record);
+				}
+			});
+		}
 	},
 	
 	/**
@@ -305,7 +307,7 @@ return Ember.Mixin.create({
 		
 		if(this.isDeepRelationship(key)) {
 			if(meta.options.async) {
-				if(current_value.get('isFulfilled') && current_val.get('content') !== value) {
+				if(!current_value || (current_value.get('isFulfilled') && current_value.get('content') !== value)) {
 					// remove all observer for this key
 					this._removeKeyObserver(key);
 				} else {
@@ -334,7 +336,7 @@ return Ember.Mixin.create({
 		
 		if(this.isDeepRelationship(key)) {
 			if(meta.options.async) {
-				if(current_value.get('isFulfilled') && current_val.get('content') !== value) {
+				if(!current_value || (current_value.get('isFulfilled') && current_value.get('content') !== value)) {
 					// initialize the new observer for this key
 					this._initializeObserver(key, meta);
 				} else {
@@ -361,7 +363,10 @@ return Ember.Mixin.create({
 		promise.then(function() {
 			// we will need to clear the dirty tracking
 			self.set('_dirtyRelationships', Ember.A());
+			self.set('_originalRelationships', Ember.Object.create());
 			self.set('isDirty', false);
+			
+			self._captureRelationships();
 		});
 		
 		return promise;

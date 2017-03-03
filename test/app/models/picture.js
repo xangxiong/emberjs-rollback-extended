@@ -10,13 +10,25 @@ define([
 	AppPictureSerializer
 ) {
 	App.PictureModel = EmberData.Model.extend({
+		deepRelationships: ['deep_user', 'deep_async_user'],
+		
 		url: EmberData.attr('string'),
+		
 		user: EmberData.belongsTo('user', {
 			inverse: 'picture',
 			async: false
 		}),
 		async_user: EmberData.belongsTo('user', {
 			inverse: 'async_picture',
+			async: true
+		}),
+		
+		deep_user: EmberData.belongsTo('user', {
+			inverse: 'deep_picture',
+			async: false
+		}),
+		deep_async_user: EmberData.belongsTo('user', {
+			inverse: 'deep_async_picture',
 			async: true
 		})
 	});
