@@ -18,7 +18,8 @@
   ],
   "dependencies": {
 	"ember": "~2",
-	"ember-data": "~2",	
+	"ember-data": "~2",
+	"handlebars": "~4",
 	"jquery": "~2"
   },
   "devDependencies": {
