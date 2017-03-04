@@ -104,16 +104,13 @@
 		
 		/**
 		 * Rollback any unsaved changes
-		 * @todo Looks like the rollback is reaching too far?  Not sure why 
 		 * */
 		rollback: function() {
 			var self = this;
+			var dirtyKeys = [];
 			
 			// enable the rolling back flag
 			this.set('_rollingback', true);
-			
-			// rollback all attributes
-			this.rollbackAttributes();
 			
 			// rollback all shallow relationships
 			this.get('_shallowRelationships').forEach(function(key) {
@@ -137,6 +134,7 @@
 				
 				// reset the dirty tracking
 				self.get('_dirtyRelationships').removeObject(key);
+				dirtyKeys.push(key);
 			});
 			
 			// rollback all deep relationships
@@ -161,7 +159,16 @@
 				
 				// reset the dirty tracking
 				self.get('_dirtyRelationships').removeObject(key);
+				dirtyKeys.push(key);
 			});
+			
+			// rollback all attributes
+			this.rollbackAttributes();
+			
+			var record = this._internalModel.record;
+			if(record) {
+				record._notifyProperties(dirtyKeys);
+			}
 			
 			// disable the rolling back flag
 			this.set('_rollingback', false);
