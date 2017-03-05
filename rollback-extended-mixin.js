@@ -165,11 +165,6 @@
 			// rollback all attributes
 			this.rollbackAttributes();
 			
-			var record = this._internalModel.record;
-			if(record) {
-				record._notifyProperties(dirtyKeys);
-			}
-			
 			// disable the rolling back flag
 			this.set('_rollingback', false);
 		},
@@ -232,7 +227,7 @@
 			}
 			
 			// invokes the rollback method on every element in the list
-			if(deep) {
+			if(deep && list) {
 				list.invoke('rollback');
 			}
 			
@@ -240,7 +235,7 @@
 			
 			// if the original list and current list have different data, we will replace the current list with the data in the original list
 			if(!Ember.isEqual(original_list.join(','), list.sortBy('id').mapBy('id').join(','))) {
-				list.clear();
+				var new_list = [];
 				
 				original_list.forEach(function(id) {
 					var record = self.store.peekRecord(meta.type, id);
@@ -249,9 +244,11 @@
 							record.rollback();
 						}
 						
-						list.pushObject(record);
+						new_list.pushObject(record);
 					}
 				});
+				
+				this.set(key, new_list);
 			}
 		},
 		

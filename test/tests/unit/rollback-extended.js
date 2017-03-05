@@ -37,12 +37,14 @@ define([
 				store.createRecord('option', {
 					id: generateUuid(),
 					name: 'icon',
-					value: 'test icon'
+					value: 'test icon',
+					sort: 0
 				}),
 				store.createRecord('option', {
 					id: generateUuid(),
 					name: 'menu',
-					value: 'test menu'
+					value: 'test menu',
+					sort: 1
 				})
 			]
 		});
@@ -73,12 +75,14 @@ define([
 				id: async_option_ids[0],
 				name: 'icon',
 				value: 'test icon',
-				async_user: async_user_id
+				async_user: async_user_id,
+				sort: 0
 			}, {
 				id: async_option_ids[1],
 				name: 'menu',
 				value: 'test menu',
-				async_user: async_user_id
+				async_user: async_user_id,
+				sort: 1
 			}]
 		});
 		
@@ -96,12 +100,14 @@ define([
 				store.createRecord('option', {
 					id: generateUuid(),
 					name: 'icon',
-					value: 'test icon'
+					value: 'test icon',
+					sort: 0
 				}),
 				store.createRecord('option', {
 					id: generateUuid(),
 					name: 'menu',
-					value: 'test menu'
+					value: 'test menu',
+					sort: 1
 				})
 			]
 		});
@@ -132,12 +138,14 @@ define([
 				id: deep_async_option_ids[0],
 				name: 'icon',
 				value: 'test icon',
-				deep_async_user: deep_async_user_id
+				deep_async_user: deep_async_user_id,
+				sort: 0
 			}, {
 				id: deep_async_option_ids[1],
 				name: 'menu',
 				value: 'test menu',
-				deep_async_user: deep_async_user_id
+				deep_async_user: deep_async_user_id,
+				sort: 1
 			}]
 		});
 		
@@ -306,6 +314,46 @@ define([
 			
 			assert.equal(user.get('options').length, 2, 'user should have 2 options');
 			assert.equal(user.get('isDirty'), false, 'user should not be dirty, rollback successfully');
+			
+			// 4. test rollback notifying computed property changes
+			var original_option_ids = user.get('sorted_options').mapBy('id');
+			var cache_option_ids = [];
+			var sort_observer = function() {
+				cache_option_ids = user.get('sorted_options').mapBy('id');
+			};
+			user.addObserver('sorted_options', sort_observer);
+			
+			option = user.get('sorted_options').objectAt(0);
+			option.set('sort', 2);
+			
+			assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache options should not equal original options anymore');			
+			user.rollback();			
+			assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache options should still not equal original options for shallow hasmany');			
+			option.rollback();			
+			assert.deepEqual(cache_option_ids, original_option_ids, 'cache options should now equal original options after option rollback');
+			
+			// remove the observer
+			user.removeObserver('sorted_options', sort_observer);
+			
+			// 5. test rollback notifying computed property of computed property changes
+			original_option_ids = user.get('sorted_active_options').mapBy('id');
+			cache_option_ids = [];
+			sort_observer = function() {
+				cache_option_ids = user.get('sorted_active_options').mapBy('id');
+			};
+			user.addObserver('sorted_active_options', sort_observer);
+			
+			option = user.get('sorted_active_options').objectAt(0);
+			option.deleteRecord();
+			
+			assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache options should not equal original options anymore');			
+			user.rollback();			
+			assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache options should still not equal original options for shallow hasmany');			
+			option.rollback();			
+			assert.deepEqual(cache_option_ids, original_option_ids, 'cache options should now equal original options after option rollback');
+			
+			// remove the observer
+			user.removeObserver('sorted_active_options', sort_observer);
 		});
 		
 		QUnit.test('shallow async hasmany', function(assert) {
@@ -357,7 +405,54 @@ define([
 				assert.equal(async_options.length, 2, 'user should have 2 options');
 				assert.equal(async_user.get('isDirty'), false, 'user should not be dirty, rollback successfully');
 				
-				done();
+				// 4. test rollback notifying property changes
+				Ember.RSVP.Promise.resolve(async_user.get('sorted_async_options')).then(function(sorted_async_options) {
+					var original_option_ids = sorted_async_options.mapBy('id');
+					var cache_option_ids = [];
+					var sort_observer = function() {
+						$.when(async_user.get('sorted_async_options')).then(function(sorted_async_options) {
+							cache_option_ids = sorted_async_options.mapBy('id');
+						});
+					};
+					async_user.addObserver('sorted_async_options', sort_observer);
+					
+					option = sorted_async_options.objectAt(0);
+					option.set('sort', 2);
+					
+					assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache async options should not equal original options anymore');
+					async_user.rollback();
+					assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache async options should still not equal original options for shallow hasmany');
+					option.rollback();
+					assert.deepEqual(cache_option_ids, original_option_ids, 'cache async options should now equal original options after option rollback');
+					
+					// remove the observer
+					async_user.removeObserver('sorted_async_options', sort_observer);
+					
+					// 5. test rollback notifying computed property of computed property changes
+					Ember.RSVP.Promise.resolve(async_user.get('sorted_active_async_options')).then(function(sorted_active_async_options) {
+						original_option_ids = sorted_active_async_options.mapBy('id');
+						cache_option_ids = [];
+						sort_observer = function() {
+							$.when(async_user.get('sorted_active_async_options')).then(function(list) {
+								cache_option_ids = list.mapBy('id');
+							});
+						};
+						async_user.addObserver('sorted_active_async_options', sort_observer);
+						option = sorted_active_async_options.objectAt(0);
+						option.deleteRecord();
+						
+						assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache sorted async options should not equal original options anymore');
+						async_user.rollback();
+						assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache sorted async options should still not equal original options for shallow hasmany');
+						option.rollback();
+						assert.deepEqual(cache_option_ids, original_option_ids, 'cache sorted async options should now equal original options after option rollback');
+						
+						// remove the observer
+						async_user.removeObserver('sorted_active_async_options', sort_observer);
+						
+						done();
+					});					
+				});
 			});
 		});
 		
@@ -509,6 +604,42 @@ define([
 			
 			assert.equal(deep_user.get('deep_options').length, 2, 'deep user should have 2 options');
 			assert.equal(deep_user.get('isDirty'), false, 'deep user should not be dirty, rollback successfully');
+			
+			// 4. test rollback notifying computed property changes
+			var original_option_ids = deep_user.get('sorted_deep_options').mapBy('id');
+			var cache_option_ids = [];
+			var sort_observer = function() {
+				cache_option_ids = deep_user.get('sorted_deep_options').mapBy('id');
+			};
+			deep_user.addObserver('sorted_deep_options', sort_observer);
+			
+			option = deep_user.get('sorted_deep_options').objectAt(0);
+			option.set('sort', 2);
+			
+			assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache options should not equal original options anymore');			
+			deep_user.rollback();	
+			assert.deepEqual(cache_option_ids, original_option_ids, 'cache options should now equal original options after deep user rollback');
+			
+			// remove the observer
+			deep_user.removeObserver('sorted_deep_options', sort_observer);
+			
+			// 5. test rollback notifying computed property of computed property changes
+			original_option_ids = deep_user.get('sorted_active_deep_options').mapBy('id');
+			cache_option_ids = [];
+			sort_observer = function() {
+				cache_option_ids = deep_user.get('sorted_active_deep_options').mapBy('id');
+			};
+			deep_user.addObserver('sorted_active_deep_options', sort_observer);
+			
+			option = deep_user.get('sorted_active_deep_options').objectAt(0);
+			option.deleteRecord();
+			
+			assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache options should not equal original options anymore');			
+			deep_user.rollback();		
+			assert.deepEqual(cache_option_ids, original_option_ids, 'cache options should now equal original options after option rollback');
+			
+			// remove the observer
+			deep_user.removeObserver('sorted_active_deep_options', sort_observer);
 		});
 		
 		QUnit.test('deep async hasmany', function(assert) {
@@ -559,7 +690,50 @@ define([
 				assert.equal(deep_async_options.length, 2, 'deep async user should have 2 options');
 				assert.equal(deep_async_user.get('isDirty'), false, 'deep async user should not be dirty, rollback successfully');
 				
-				done();
+				// 4. test rollback notifying property changes
+				Ember.RSVP.Promise.resolve(deep_async_user.get('sorted_deep_async_options')).then(function(sorted_async_options) {
+					var original_option_ids = sorted_async_options.mapBy('id');
+					var cache_option_ids = [];
+					var sort_observer = function() {
+						$.when(deep_async_user.get('sorted_deep_async_options')).then(function(sorted_async_options) {
+							cache_option_ids = sorted_async_options.mapBy('id');
+						});
+					};
+					deep_async_user.addObserver('sorted_deep_async_options', sort_observer);
+					
+					option = sorted_async_options.objectAt(0);
+					option.set('sort', 2);
+					
+					assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache deep async options should not equal original options anymore');
+					deep_async_user.rollback();
+					assert.deepEqual(cache_option_ids, original_option_ids, 'cache deep async options should now equal original options after option rollback');
+					
+					// remove the observer
+					deep_async_user.removeObserver('sorted_deep_async_options', sort_observer);
+					
+					// 5. test rollback notifying computed property of computed property changes
+					Ember.RSVP.Promise.resolve(deep_async_user.get('sorted_active_deep_async_options')).then(function(sorted_active_deep_async_options) {
+						original_option_ids = sorted_active_deep_async_options.mapBy('id');
+						cache_option_ids = [];
+						sort_observer = function() {
+							$.when(deep_async_user.get('sorted_active_deep_async_options')).then(function(list) {
+								cache_option_ids = list.mapBy('id');
+							});
+						};
+						deep_async_user.addObserver('sorted_active_deep_async_options', sort_observer);
+						option = sorted_active_deep_async_options.objectAt(0);
+						option.deleteRecord();
+						
+						assert.notDeepEqual(cache_option_ids, original_option_ids, 'cache sorted active deep async options should not equal original options anymore');
+						deep_async_user.rollback();
+						assert.deepEqual(cache_option_ids, original_option_ids, 'cache sorted active deep async options should now equal original options after option rollback');
+						
+						// remove the observer
+						deep_async_user.removeObserver('sorted_active_async_options', sort_observer);
+						
+						done();
+					});					
+				});
 			});
 		});
 		

@@ -14,6 +14,7 @@ define([
 		
 		name: EmberData.attr('string'),
 		value: EmberData.attr('string'),
+		sort: EmberData.attr('number'),
 		
 		user: EmberData.belongsTo('user', {
 			inverse: 'options',
