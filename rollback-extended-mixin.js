@@ -36,18 +36,42 @@
 		factory(Ember, $);
 	}
 }(this, function(Ember, $) {
+	/**
+	 * Mixin the ability to rollback deep and shallow relationships.  Deep relationships are relationships with the cascade persist=true.  All others are shallow relationships.
+	 * Also mixin the ability to cascade persist (save) and remove (delete) along with removal of orphan relationships
+	 *
+	 * field: DS.hasMany('model', {
+	 *		cascade: {
+	 *			persist: true,
+	 *			remove: true,
+	 *			orphan: true
+	 *		}
+	 * })
+	 * */
 	return Ember.Mixin.create({
-		// the fields of the relationships that should be deeply tracked
-		// deep tracked relationships implies that if the models in the relationship has been dirty, the model referring to it will be dirty as well.
-		deepRelationships: [],
-		
 		// current dirty state
 		isDirty: false,
 		
-		// the cached of all relationships that are not deep relationships
-		// shallow tracked relationship will only make the model referring to it dirty if the relationship has been updated.
-		// belongsTo => the relationship is changed, belongsTo=val1 => belongsTo=val2
-		// hasMany => the relationship is changed or the content of the list changed, hasMany=[val1, val2] => hasMany=[val1] or hasMany=[val1, val3] or hasMany=[val1, val2, val3]
+		/**
+		 * the cached of the relationships that are deeply tracked.
+		 * deep tracked relationships implies that if the models in the relationship has been dirty, the model referring to it will be dirty as well.
+		 * to define a relationship as deep, it should have the persist cascade flag set to true.
+		 * 
+		 *	field: DS.hasMany('model', {
+		 *		async: true,
+		 *		cascade: {
+		 *			persist: true
+		 *		}
+		 *	})
+		 * */
+		_deepRelationships: null,
+		
+		/**
+		 * the cached of the remaining relationships that are not deep relationships.
+		 * shallow tracked relationship will only make the model referring to it dirty if the relationship has been updated.
+		 * belongsTo => the relationship is changed, belongsTo=val1 => belongsTo=val2
+		 * hasMany => the relationship is changed or the content of the list changed, hasMany=[val1, val2] => hasMany=[val1] or hasMany=[val1, val3] or hasMany=[val1, val2, val3]
+		 * */
 		_shallowRelationships: null,
 		
 		// all original relationships captured
@@ -67,6 +91,7 @@
 		onInit: function() {
 			var self = this;
 			
+			this.set('_deepRelationships', Ember.A());
 			this.set('_shallowRelationships', Ember.A());
 			this.set('_originalRelationships', Ember.Object.create());
 			this.set('_dirtyRelationships', Ember.A());
@@ -74,7 +99,9 @@
 			
 			// load the shallow relationships
 			this.eachRelationship(function(key, meta) {
-				if(!self.isDeepRelationship(key)) {
+				if(meta.options && meta.options.cascade && meta.options.cascade.persist === true) {
+					self.get('_deepRelationships').addObject(key);
+				} else {				
 					self.get('_shallowRelationships').addObject(key);
 				}
 			});
@@ -99,7 +126,7 @@
 		}.property('_dirtyRelationships.[]'),
 		
 		isDeepRelationship: function(key) {
-			return this.get('deepRelationships').includes(key);
+			return this.get('_deepRelationships').includes(key);
 		},
 		
 		/**
@@ -136,7 +163,7 @@
 			});
 			
 			// rollback all deep relationships
-			this.get('deepRelationships').forEach(function(key) {
+			this.get('_deepRelationships').forEach(function(key) {
 				var meta = self.relationshipFor(key);
 				
 				if(meta.kind === 'belongsTo') {
@@ -398,7 +425,7 @@
 			var promises = [];
 			
 			// save all deep relationships first
-			this.get('deepRelationships').forEach(function(key) {
+			this.get('_deepRelationships').forEach(function(key) {
 				var meta = self.relationshipFor(key);
 				
 				if(meta.kind === 'belongsTo') {

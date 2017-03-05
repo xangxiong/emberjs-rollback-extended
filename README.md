@@ -55,7 +55,7 @@ The Rollback Extended mixin assumes that RequireJS is being used to load these J
     });
 
 ### Defining Deep Relationships
-All relationships will default to **Shallow** unless specifically defined to be **Deep**.
+All relationships will default to **Shallow** unless specifically defined to be **Deep** by adding the **cascade.persist** flag to the relationship options.
 
 	require([
 		"ember-data",
@@ -66,13 +66,14 @@ All relationships will default to **Shallow** unless specifically defined to be 
 	) {
 		// proceed with model creation
 		var User = DS.Model.extend(RollbackExtendedMixin, {
-			// define deep relationships
-			deepRelationships: ["options"],
-
 			// model property definition
 			name: DS.attr("string"),
 			picture: DS.belongsTo('picture'),
-			options: DS.hasMany('option')
+			options: DS.hasMany('option', {
+				cascade: {
+					persist: true
+				}
+			})
 		});
 	});
 

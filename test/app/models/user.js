@@ -14,8 +14,6 @@ define([
 	AppUserSerializer
 ) {
 	App.UserModel = EmberData.Model.extend({
-		deepRelationships: ['deep_options', 'deep_async_options', 'deep_picture', 'deep_async_picture'],
-		
 		name: EmberData.attr('string'),
 		
 		picture: EmberData.belongsTo('picture', {
@@ -29,11 +27,17 @@ define([
 		
 		deep_picture: EmberData.belongsTo('picture', {
 			inverse: 'deep_user',
-			async: false
+			async: false,
+			cascade: {
+				persist: true
+			}
 		}),
 		deep_async_picture: EmberData.belongsTo('picture', {
 			inverse: 'deep_async_user',
-			async: true
+			async: true,
+			cascade: {
+				persist: true
+			}
 		}),		
 		
 		options: EmberData.hasMany('option', {
@@ -47,11 +51,17 @@ define([
 		
 		deep_options: EmberData.hasMany('option', {
 			inverse: 'deep_user',
-			async: false
+			async: false,
+			cascade: {
+				persist: true
+			}
 		}),
 		deep_async_options: EmberData.hasMany('option', {
 			inverse: 'deep_async_user',
-			async: true
+			async: true,
+			cascade: {
+				persist: true
+			}
 		}),
 		
 		sort_definition: function() {
