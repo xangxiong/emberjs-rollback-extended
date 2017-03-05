@@ -107,7 +107,6 @@
 		 * */
 		rollback: function() {
 			var self = this;
-			var dirtyKeys = [];
 			
 			// enable the rolling back flag
 			this.set('_rollingback', true);
@@ -134,7 +133,6 @@
 				
 				// reset the dirty tracking
 				self.get('_dirtyRelationships').removeObject(key);
-				dirtyKeys.push(key);
 			});
 			
 			// rollback all deep relationships
@@ -159,7 +157,6 @@
 				
 				// reset the dirty tracking
 				self.get('_dirtyRelationships').removeObject(key);
-				dirtyKeys.push(key);
 			});
 			
 			// rollback all attributes
