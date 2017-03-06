@@ -83,10 +83,8 @@
 		// any active observers
 		_activeObservers: null,
 		
-		// tracking whether a rollback is in progress
-		_rollingback: false,
-		// tracking whether a save is in progress
-		_saving: false,
+		// track the current activity this model is performing (rollingback, saving, deleting, unloading)
+		_activity: null,
 		
 		onInit: function() {
 			var self = this;
@@ -96,6 +94,13 @@
 			this.set('_originalRelationships', Ember.Object.create());
 			this.set('_dirtyRelationships', Ember.A());
 			this.set('_activeObservers', Ember.Object.create());
+			this.set('_activity', Ember.Object.create({
+				rollingback: false,
+				saving: false,
+				deleting: false,
+				destroying: false,
+				unloading: false
+			}));
 			
 			// load the shallow relationships
 			this.eachRelationship(function(key, meta) {
@@ -113,13 +118,9 @@
 			});
 		}.on('init'),
 		
-		rollbackInProgress: function() {
-			return this.get('_rollingback') === true;
-		}.property('_rollingback'),
-		
 		observerEnabled: function() {
-			return this.get('_rollingback') === false;
-		}.property('_rollingback'),
+			return this.performingActivity('rollingback') === false;
+		}.property('_activity.rollingback'),
 		
 		hasDirtyRelationships: function() {
 			return this.get('_dirtyRelationships').length > 0;
@@ -129,6 +130,18 @@
 			return this.get('_deepRelationships').includes(key);
 		},
 		
+		performingActivity: function(key) {
+			return this.get('_activity').get(key) === true;
+		},
+		
+		startActivity: function(key) {
+			this.get('_activity').set(key, true);
+		},
+		
+		endActivity: function(key) {
+			this.get('_activity').set(key, false);
+		},
+		
 		/**
 		 * Rollback any unsaved changes
 		 * */
@@ -136,7 +149,7 @@
 			var self = this;
 			
 			// enable the rolling back flag
-			this.set('_rollingback', true);
+			this.startActivity('rollingback');
 			
 			// rollback all shallow relationships
 			this.get('_shallowRelationships').forEach(function(key) {
@@ -190,7 +203,7 @@
 			this.rollbackAttributes();
 			
 			// disable the rolling back flag
-			this.set('_rollingback', false);
+			this.endActivity('rollingback');
 		},
 		
 		/**
@@ -210,7 +223,7 @@
 			var current_id = undefined;
 			
 			if(val) {
-				if(deep && val.get('isDirty') && !val.get('rollbackInProgress')) {
+				if(deep && val.get('isDirty') && !val.performingActivity('rollingback')) {
 					val.rollback();
 				}
 				
@@ -225,7 +238,7 @@
 			} else if(original_id != current_id) {				
 				var record = this.store.peekRecord(meta.type, original_id);
 				if(record) {
-					if(deep && record.get('isDirty') && !record.get('rollbackInProgress')) {
+					if(deep && record.get('isDirty') && !record.performingActivity('rollingback')) {
 						record.rollback();
 					}
 					
@@ -252,7 +265,11 @@
 			
 			// invokes the rollback method on every element in the list
 			if(deep && list) {
-				list.invoke('rollback');
+				list.forEach(function(item) {
+					if(!item.performingActivity('rollingback')) {
+						item.rollback();
+					}
+				});
 			}
 			
 			var original_list = this.get('_originalRelationships').get(key);
@@ -264,7 +281,7 @@
 				original_list.forEach(function(id) {
 					var record = self.store.peekRecord(meta.type, id);
 					if(record) {
-						if(deep && record.get('isDirty') && !record.get('rollbackInProgress')) {
+						if(deep && record.get('isDirty') && !record.performingActivity('rollingback')) {
 							record.rollback();
 						}
 						
@@ -420,7 +437,7 @@
 			var self = this;
 			
 			// enable the saving back flag
-			this.set('_saving', true);
+			this.startActivity('saving');
 			
 			var promises = [];
 			
@@ -438,7 +455,7 @@
 							val = val.get('content');
 						}
 						
-						if(val && val.get('isDirty') && val.get('_saving') !== true) {
+						if(val && val.get('isDirty') && !val.performingActivity('saving')) {
 							promises.push(val.save());
 						}
 					}
@@ -454,7 +471,7 @@
 						
 						if(list) {
 							list.forEach(function(val) {
-								if(val.get('isDirty') && val.get('_saving') !== true) {
+								if(val.get('isDirty') && !val.performingActivity('saving')) {
 									promises.push(val.save());
 								}
 							});
@@ -475,11 +492,121 @@
 					self._captureRelationships();
 					
 					// disable the rolling back flag
-					self.set('_saving', false);
+					self.endActivity('saving');
 					
 					resolve();
 				}, function(error) {
-					self.set('_saving', false);
+					self.endActivity('saving');
+					reject(error);
+				});
+			});
+		},
+		
+		deleteRecord: function() {
+			var self = this;
+			
+			this.startActivity('deleting');
+			
+			this._super.apply(this, arguments);
+			
+			this.eachRelationship(function(key, meta) {
+				if(meta.options && meta.options.cascade && meta.options.cascade.remove === true) {
+					if(meta.kind == 'belongsTo') {
+						var belongsTo = self.belongsTo(key);
+						
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+							// this belongsto is already loaded, we can delete it
+							var val = self.get(key);
+							if(meta.options.async && val) {
+								val = val.get('content');
+							}
+							
+							if(val && !val.performingActivity('deleting')) {
+								val.deleteRecord();
+							}
+						}
+					} else if(meta.kind == 'hasMany') {
+						var hasMany = self.hasMany(key);
+						
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+							// this hasmany is already loaded, we can rollback
+							var list = self.get(key);
+							if(meta.options.async && list) {
+								list = list.get('content');
+							}
+							
+							if(list) {
+								list.forEach(function(val) {
+									if(!val.performingActivity('deleting')) {
+										val.deleteRecord();
+									}
+								});
+							}
+						}
+					}
+				}
+			}, this);
+			
+			this.endActivity('deleting');
+		},
+		
+		destroyRecord: function() {
+			var self = this;
+			
+			// enable the destroying flag
+			this.startActivity('destroying');
+			
+			var promises = [];
+			
+			// destroy all relationships first
+			this.eachRelationship(function(key, meta) {
+				if(meta.options && meta.options.cascade && meta.options.cascade.remove === true) {
+					if(meta.kind === 'belongsTo') {
+						var belongsTo = self.belongsTo(key);
+						
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+							// this belongsto is already loaded, we can save
+							var val = self.get(key);
+							if(meta.options.async && val) {
+								val = val.get('content');
+							}
+							
+							if(val && !val.performingActivity('destroying')) {
+								promises.push(val.destroyRecord());
+							}
+						}
+					} else if(meta.kind === 'hasMany') {
+						var hasMany = self.hasMany(key);
+						
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+							// this hasmany is already loaded, we can rollback
+							var list = self.get(key);
+							if(meta.options.async && list) {
+								list = list.get('content');
+							}
+							
+							if(list) {
+								list.forEach(function(val) {
+									if(val.get('isDirty') && !val.performingActivity('destroying')) {
+										promises.push(val.destroyRecord());
+									}
+								});
+							}
+						}
+					}
+				}
+			});
+			
+			promises.push(this._super.apply(this, arguments));
+			
+			return new Ember.RSVP.Promise(function(resolve, reject) {
+				Ember.RSVP.Promise.all(promises).then(function() {
+					// disable the rolling back flag
+					self.endActivity('destroying');
+					
+					resolve();
+				}, function(error) {
+					self.endActivity('destroying');
 					reject(error);
 				});
 			});
