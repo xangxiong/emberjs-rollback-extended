@@ -98,7 +98,6 @@
 				rollingback: false,
 				saving: false,
 				deleting: false,
-				destroying: false,
 				unloading: false
 			}));
 			
@@ -158,14 +157,14 @@
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
-					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
+					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, false);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
-					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
+					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
 						// this hasmany is already loaded, we can rollback
 						self._rollbackHasMany(key, false);
 					}
@@ -182,14 +181,14 @@
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
-					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
+					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, true);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
-					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) && self.get('_dirtyRelationships').includes(key)) {
+					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
 						// this hasmany is already loaded, we can rollback
 						self._rollbackHasMany(key, true);
 					}
@@ -502,7 +501,7 @@
 			});
 		},
 		
-		deleteRecord: function() {
+		deleteRecord: function() {			
 			var self = this;
 			
 			this.startActivity('deleting');
@@ -521,7 +520,7 @@
 								val = val.get('content');
 							}
 							
-							if(val && !val.performingActivity('deleting')) {
+							if(val && !val.performingActivity('deleting') && !val.get('isDeleted')) {
 								val.deleteRecord();
 							}
 						}
@@ -537,7 +536,7 @@
 							
 							if(list) {
 								list.forEach(function(val) {
-									if(!val.performingActivity('deleting')) {
+									if(val && !val.performingActivity('deleting') && !val.get('isDeleted')) {
 										val.deleteRecord();
 									}
 								});
@@ -549,69 +548,7 @@
 			
 			this.endActivity('deleting');
 		},
-		
-		destroyRecord: function() {
-			var self = this;
-			
-			// enable the destroying flag
-			this.startActivity('destroying');
-			
-			var promises = [];
-			
-			// destroy all relationships first
-			this.eachRelationship(function(key, meta) {
-				if(meta.options && meta.options.cascade && meta.options.cascade.remove === true) {
-					if(meta.kind === 'belongsTo') {
-						var belongsTo = self.belongsTo(key);
-						
-						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
-							// this belongsto is already loaded, we can save
-							var val = self.get(key);
-							if(meta.options.async && val) {
-								val = val.get('content');
-							}
-							
-							if(val && !val.performingActivity('destroying')) {
-								promises.push(val.destroyRecord());
-							}
-						}
-					} else if(meta.kind === 'hasMany') {
-						var hasMany = self.hasMany(key);
-						
-						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
-							// this hasmany is already loaded, we can rollback
-							var list = self.get(key);
-							if(meta.options.async && list) {
-								list = list.get('content');
-							}
-							
-							if(list) {
-								list.forEach(function(val) {
-									if(val.get('isDirty') && !val.performingActivity('destroying')) {
-										promises.push(val.destroyRecord());
-									}
-								});
-							}
-						}
-					}
-				}
-			});
-			
-			promises.push(this._super.apply(this, arguments));
-			
-			return new Ember.RSVP.Promise(function(resolve, reject) {
-				Ember.RSVP.Promise.all(promises).then(function() {
-					// disable the rolling back flag
-					self.endActivity('destroying');
-					
-					resolve();
-				}, function(error) {
-					self.endActivity('destroying');
-					reject(error);
-				});
-			});
-		},
-		
+				
 		/**
 		 * Register the observer under the given key
 		 * */

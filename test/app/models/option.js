@@ -27,14 +27,16 @@ define([
 			inverse: 'deep_options',
 			async: false,
 			cascade: {
-				persist: true
+				persist: true,
+				remove: true
 			}
 		}),		
 		deep_async_user: EmberData.belongsTo('user', {
 			inverse: 'deep_async_options',
 			async: true,
 			cascade: {
-				persist: true
+				persist: true,
+				remove: true
 			}
 		})
 	});

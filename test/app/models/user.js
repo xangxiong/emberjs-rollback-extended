@@ -29,14 +29,16 @@ define([
 			inverse: 'deep_user',
 			async: false,
 			cascade: {
-				persist: true
+				persist: true,
+				remove: true
 			}
 		}),
 		deep_async_picture: EmberData.belongsTo('picture', {
 			inverse: 'deep_async_user',
 			async: true,
 			cascade: {
-				persist: true
+				persist: true,
+				remove: true
 			}
 		}),		
 		
@@ -53,14 +55,16 @@ define([
 			inverse: 'deep_user',
 			async: false,
 			cascade: {
-				persist: true
+				persist: true,
+				remove: true
 			}
 		}),
 		deep_async_options: EmberData.hasMany('option', {
 			inverse: 'deep_async_user',
 			async: true,
 			cascade: {
-				persist: true
+				persist: true,
+				remove: true
 			}
 		}),
 		

@@ -738,7 +738,7 @@ define([
 		});
 		
 		// ##
-		// 4. start queuing up all shallow save test cases
+		// 4. start queuing up all save test cases
 		// ##
 		QUnit.test('shallow sync save', function(assert) {
 			var done = assert.async();
@@ -785,9 +785,6 @@ define([
 			});
 		});
 		
-		// ##
-		// 5. start queuing up all deep save test cases
-		// ##
 		QUnit.test('deep sync save', function(assert) {
 			var done = assert.async();
 			
@@ -826,6 +823,139 @@ define([
 						
 						assert.equal(deep_async_picture.get('url'), 'https://test.io/xang-updated.jpg', 'async picture url saved as updated version, rollback does not affect');
 						assert.equal(deep_async_options.findBy('name', 'icon').get('value'), 'updated test icon', 'async option icon saved as updated version, rollback does not affect');
+						
+						done();
+					});
+				});
+			});
+		});
+		
+		// ##
+		// 5. start queuing up all deletion test cases
+		// ##
+		QUnit.test('shallow sync deletion', function(assert) {
+			var done = assert.async();
+			
+			var picture = user.get('picture');
+			var options = user.get('options');
+			
+			user.deleteRecord();
+			
+			assert.equal(user.get('isDeleted'), true, 'user is deleted');
+			assert.equal(picture.get('isDeleted'), false, 'user picture is not deleted');
+			options.forEach(function(option) {
+				assert.equal(option.get('isDeleted'), false, 'user option ' + option.get('name') + ' is not deleted');
+			});
+			
+			user.rollback();
+			
+			assert.equal(user.get('isDeleted'), false, 'user is no longer deleted, rollback successfully');
+			assert.equal(picture.get('isDeleted'), false, 'user picture is no longer deleted, rollback successfully');
+			options.forEach(function(option) {
+				assert.equal(option.get('isDeleted'), false, 'user option ' + option.get('name') + ' is no longer deleted, rollback successfully');
+			});
+			
+			Ember.RSVP.Promise.resolve(user.destroyRecord()).then(function() {
+				assert.equal(picture.get('isDeleted'), false, 'user picture is not deleted');
+				options.forEach(function(option) {
+					assert.equal(option.get('isDeleted'), false, 'user option ' + option.get('name') + ' is not deleted');
+				});
+				
+				done();
+			});
+		});
+		
+		QUnit.test('shallow async deletion', function(assert) {
+			var done = assert.async();
+			
+			Ember.RSVP.Promise.resolve(async_user.get('async_picture')).then(function(picture) {
+				Ember.RSVP.Promise.resolve(async_user.get('async_options')).then(function(options) {
+					async_user.deleteRecord();
+					
+					assert.equal(async_user.get('isDeleted'), true, 'async user is deleted');
+					assert.equal(picture.get('isDeleted'), false, 'async user picture is not deleted');
+					options.forEach(function(option) {
+						assert.equal(option.get('isDeleted'), false, 'async user option ' + option.get('name') + ' is not deleted');
+					});
+					
+					async_user.rollback();
+					
+					assert.equal(async_user.get('isDeleted'), false, 'async user is no longer deleted, rollback successfully');
+					assert.equal(picture.get('isDeleted'), false, 'async user picture is no longer deleted, rollback successfully');
+					options.forEach(function(option) {
+						assert.equal(option.get('isDeleted'), false, 'async user option ' + option.get('name') + ' is no longer deleted, rollback successfully');
+					});
+					
+					Ember.RSVP.Promise.resolve(async_user.destroyRecord()).then(function() {
+						assert.equal(picture.get('isDeleted'), false, 'async user picture is not deleted');
+						options.forEach(function(option) {
+							assert.equal(option.get('isDeleted'), false, 'async user option ' + option.get('name') + ' is not deleted');
+						});
+						
+						done();
+					});
+				});
+			});
+		});
+		
+		QUnit.test('deep sync deletion', function(assert) {
+			var done = assert.async();
+			
+			var picture = deep_user.get('deep_picture');
+			var options = deep_user.get('deep_options');
+			
+			deep_user.deleteRecord();
+			
+			assert.equal(deep_user.get('isDeleted'), true, 'deep user is deleted');
+			assert.equal(picture.get('isDeleted'), true, 'deep user picture is deleted');
+			options.forEach(function(option) {
+				assert.equal(option.get('isDeleted'), true, 'deep user option ' + option.get('name') + ' is deleted');
+			});
+			
+			deep_user.rollback();
+			
+			assert.equal(deep_user.get('isDeleted'), false, 'deep user is no longer deleted, rollback successfully');
+			assert.equal(picture.get('isDeleted'), false, 'deep user picture is no longer deleted, rollback successfully');
+			options.forEach(function(option) {
+				assert.equal(option.get('isDeleted'), false, 'deep user option ' + option.get('name') + ' is no longer deleted, rollback successfully');
+			});
+			
+			Ember.RSVP.Promise.resolve(deep_user.destroyRecord()).then(function() {
+				assert.equal(picture.get('isDeleted'), true, 'deep user picture is destroyed');
+				options.forEach(function(option) {
+					assert.equal(option.get('isDeleted'), true, 'deep user option ' + option.get('name') + ' is destroyed');
+				});
+				
+				done();
+			});
+		});
+		
+		QUnit.test('deep async deletion', function(assert) {
+			var done = assert.async();
+			
+			Ember.RSVP.Promise.resolve(deep_async_user.get('deep_async_picture')).then(function(picture) {
+				Ember.RSVP.Promise.resolve(deep_async_user.get('deep_async_options')).then(function(options) {
+					deep_async_user.deleteRecord();
+					
+					assert.equal(deep_async_user.get('isDeleted'), true, 'deep async user is deleted');
+					assert.equal(picture.get('isDeleted'), true, 'deep async user picture is true deleted');
+					options.forEach(function(option) {
+						assert.equal(option.get('isDeleted'), true, 'deep async user option ' + option.get('name') + ' is deleted');
+					});
+					
+					deep_async_user.rollback();
+					
+					assert.equal(deep_async_user.get('isDeleted'), false, 'deep async user is no longer deleted, rollback successfully');
+					assert.equal(picture.get('isDeleted'), false, 'deep async user picture is no longer deleted, rollback successfully');
+					options.forEach(function(option) {
+						assert.equal(option.get('isDeleted'), false, 'deep async user option ' + option.get('name') + ' is no longer deleted, rollback successfully');
+					});
+					
+					Ember.RSVP.Promise.resolve(deep_async_user.destroyRecord()).then(function() {
+						assert.equal(picture.get('isDeleted'), true, 'deep async user picture is destroyed');
+						options.forEach(function(option) {
+							assert.equal(option.get('isDeleted'), false, 'deep async user option ' + option.get('name') + ' is destroyed');
+						});
 						
 						done();
 					});
