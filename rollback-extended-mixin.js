@@ -43,8 +43,7 @@
 	 * field: DS.hasMany('model', {
 	 *		cascade: {
 	 *			persist: true,
-	 *			remove: true,
-	 *			orphan: true
+	 *			remove: true
 	 *		}
 	 * })
 	 * */
@@ -143,6 +142,8 @@
 		
 		/**
 		 * Rollback any unsaved changes
+		 *
+		 * @todo How do we just rollback deep relationship and undelete shallow relationship with the remove=true?
 		 * */
 		rollback: function() {
 			var self = this;
@@ -450,12 +451,15 @@
 					if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
 						// this belongsto is already loaded, we can save
 						var val = self.get(key);
-						if(meta.options.async && val) {
-							val = val.get('content');
-						}
 						
-						if(val && val.get('isDirty') && !val.performingActivity('saving')) {
-							promises.push(val.save());
+						if(val) {
+							if(meta.options.async) {
+								val = val.get('content');
+							}
+							
+							if(val.get('isDirty') && !val.performingActivity('saving')) {
+								promises.push(val.save());
+							}
 						}
 					}
 				} else if(meta.kind === 'hasMany') {
@@ -463,14 +467,15 @@
 					
 					if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
 						// this hasmany is already loaded, we can rollback
-						var list = self.get(key);
-						if(meta.options.async && list) {
-							list = list.get('content');
-						}
+						var list = self.get(key);						
 						
 						if(list) {
+							if(meta.options.async) {
+								list = list.get('content');
+							}
+							
 							list.forEach(function(val) {
-								if(val.get('isDirty') && !val.performingActivity('saving')) {
+								if(val && val.get('isDirty') && !val.performingActivity('saving')) {
 									promises.push(val.save());
 								}
 							});
@@ -516,12 +521,15 @@
 						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
 							// this belongsto is already loaded, we can delete it
 							var val = self.get(key);
-							if(meta.options.async && val) {
-								val = val.get('content');
-							}
 							
-							if(val && !val.performingActivity('deleting') && !val.get('isDeleted')) {
-								val.deleteRecord();
+							if(val) {
+								if(meta.options.async) {
+									val = val.get('content');
+								}
+								
+								if(!val.performingActivity('deleting') && !val.get('isDeleted')) {
+									val.deleteRecord();
+								}
 							}
 						}
 					} else if(meta.kind == 'hasMany') {
@@ -529,13 +537,15 @@
 						
 						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
 							// this hasmany is already loaded, we can rollback
-							var list = self.get(key);
-							if(meta.options.async && list) {
-								list = list.get('content');
-							}
+							var list = self.get(key);							
 							
 							if(list) {
-								list.forEach(function(val) {
+								if(meta.options.async) {
+									list = list.get('content');
+								}
+								
+								// convert to array first to remove reference/altering when a value is deleted
+								list.toArray().forEach(function(val) {
 									if(val && !val.performingActivity('deleting') && !val.get('isDeleted')) {
 										val.deleteRecord();
 									}
@@ -548,7 +558,60 @@
 			
 			this.endActivity('deleting');
 		},
-				
+		
+		unloadRecord: function() {
+			var self = this;
+			
+			this.startActivity('unloading');
+			
+			this.eachRelationship(function(key, meta) {
+				if(meta.options && meta.options.cascade && meta.options.cascade.remove === true) {
+					if(meta.kind == 'belongsTo') {
+						var belongsTo = self.belongsTo(key);
+						
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+							// this belongsto is already loaded, we can delete it
+							var val = self.get(key);
+							
+							if(val) {
+								if(meta.options.async) {
+									val = val.get('content');
+								}
+								
+								if(!val.performingActivity('unloading') && !val.get('isDestroyed')) {
+									val.unloadRecord();
+								}
+							}
+						}
+					} else if(meta.kind == 'hasMany') {
+						var hasMany = self.hasMany(key);
+						
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+							// this hasmany is already loaded, we can rollback
+							var list = self.get(key);
+
+							if(list) {
+								if(meta.options.async) {
+									list = list.get('content');
+								}
+								
+								// convert to array first to remove reference/altering when a value is unloaded
+								list.toArray().forEach(function(val) {
+									if(val && !val.performingActivity('unloading') && !val.get('isDestroyed')) {
+										val.unloadRecord();
+									}
+								});
+							}
+						}
+					}
+				}
+			}, this);
+			
+			this._super.apply(this, arguments);
+			
+			this.endActivity('unloading');
+		},
+		
 		/**
 		 * Register the observer under the given key
 		 * */
@@ -625,7 +688,6 @@
 			var self = this;
 			
 			if(this.get('observerEnabled')) {
-				// @todo using when here makes this process no-sync, which produces a race condition on the isDirty check
 				var checker = function(current_list) {
 					if(self.isDeepRelationship(key)) {
 						var dirty_ids = self.get(key).without(undefined).filterBy('isDirty', true).sortBy('id').mapBy('id');

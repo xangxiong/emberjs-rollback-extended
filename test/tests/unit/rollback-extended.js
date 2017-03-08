@@ -48,16 +48,46 @@ define([
 				})
 			]
 		});
+		var unload_user = store.createRecord('user', {
+			id: generateUuid(),
+			name: 'Xang',
+			picture: store.createRecord('picture', {
+				id: generateUuid(),
+				url: 'https://test.io/xang.jpg'
+			}),
+			options: [
+				store.createRecord('option', {
+					id: generateUuid(),
+					name: 'icon',
+					value: 'test icon',
+					sort: 0
+				}),
+				store.createRecord('option', {
+					id: generateUuid(),
+					name: 'menu',
+					value: 'test menu',
+					sort: 1
+				})
+			]
+		});
 		
 		// save these records so that we start with a fresh state		
 		user.get('picture').save();
 		user.get('options').invoke('save');
 		user.save();
 		
+		unload_user.get('picture').save();
+		unload_user.get('options').invoke('save');
+		unload_user.save();
+		
 		// ## shallow async model
 		var async_user_id = generateUuid();
 		var async_picture_id = generateUuid();
 		var async_option_ids = [generateUuid(), generateUuid()];
+		
+		var unload_async_user_id = generateUuid();
+		var unload_async_picture_id = generateUuid();
+		var unload_async_option_ids = [generateUuid(), generateUuid()];
 		
 		store.pushPayload({
 			users: [{
@@ -85,11 +115,60 @@ define([
 				sort: 1
 			}]
 		});
+		store.pushPayload({
+			users: [{
+				id: unload_async_user_id,
+				name: 'Xang Async',
+				async_picture: unload_async_picture_id,
+				async_options: unload_async_option_ids
+			}],
+			pictures: [{
+				id: unload_async_picture_id,
+				url: 'https://test.io/xang-async.jpg',
+				async_user: unload_async_user_id
+			}],
+			options: [{
+				id: unload_async_option_ids[0],
+				name: 'icon',
+				value: 'test icon',
+				async_user: unload_async_user_id,
+				sort: 0
+			}, {
+				id: unload_async_option_ids[1],
+				name: 'menu',
+				value: 'test menu',
+				async_user: unload_async_user_id,
+				sort: 1
+			}]
+		});
 		
 		var async_user = store.peekRecord('user', async_user_id);
+		var unload_async_user = store.peekRecord('user', unload_async_user_id);
 		
 		// ## deep sync model
 		var deep_user = store.createRecord('user', {
+			id: generateUuid(),
+			name: 'Xang',
+			deep_picture: store.createRecord('picture', {
+				id: generateUuid(),
+				url: 'https://test.io/xang.jpg'
+			}),
+			deep_options: [
+				store.createRecord('option', {
+					id: generateUuid(),
+					name: 'icon',
+					value: 'test icon',
+					sort: 0
+				}),
+				store.createRecord('option', {
+					id: generateUuid(),
+					name: 'menu',
+					value: 'test menu',
+					sort: 1
+				})
+			]
+		});
+		var unload_deep_user = store.createRecord('user', {
 			id: generateUuid(),
 			name: 'Xang',
 			deep_picture: store.createRecord('picture', {
@@ -117,10 +196,18 @@ define([
 		deep_user.get('deep_options').invoke('save');
 		deep_user.save();
 		
+		unload_deep_user.get('deep_picture').save();
+		unload_deep_user.get('deep_options').invoke('save');
+		unload_deep_user.save();
+		
 		// ## deep async model
 		var deep_async_user_id = generateUuid();
 		var deep_async_picture_id = generateUuid();
 		var deep_async_option_ids = [generateUuid(), generateUuid()];
+		
+		var unload_deep_async_user_id = generateUuid();
+		var unload_deep_async_picture_id = generateUuid();
+		var unload_deep_async_option_ids = [generateUuid(), generateUuid()];
 		
 		store.pushPayload({
 			users: [{
@@ -148,8 +235,35 @@ define([
 				sort: 1
 			}]
 		});
+		store.pushPayload({
+			users: [{
+				id: unload_deep_async_user_id,
+				name: 'Xang Async',
+				deep_async_picture: unload_deep_async_picture_id,
+				deep_async_options: unload_deep_async_option_ids
+			}],
+			pictures: [{
+				id: unload_deep_async_picture_id,
+				url: 'https://test.io/xang-async.jpg',
+				deep_async_user: unload_deep_async_user_id
+			}],
+			options: [{
+				id: unload_deep_async_option_ids[0],
+				name: 'icon',
+				value: 'test icon',
+				deep_async_user: unload_deep_async_user_id,
+				sort: 0
+			}, {
+				id: unload_deep_async_option_ids[1],
+				name: 'menu',
+				value: 'test menu',
+				deep_async_user: unload_deep_async_user_id,
+				sort: 1
+			}]
+		});
 		
 		var deep_async_user = store.peekRecord('user', deep_async_user_id);
+		var unload_deep_async_user = store.peekRecord('user', unload_deep_async_user_id);
 		
 		// ##
 		// 2. start queuing up all shallow test cases
@@ -959,6 +1073,97 @@ define([
 						
 						done();
 					});
+				});
+			});
+		});
+		
+		// ##
+		// 6. start queuing up all unloading test cases
+		// ##
+		QUnit.test('shallow sync unload', function(assert) {
+			var done = assert.async();
+			
+			var user_id = unload_user.get('id');
+			var picture_id = unload_user.get('picture').get('id');
+			var option_ids = unload_user.get('options').mapBy('id');
+			
+			unload_user.unloadRecord();
+			
+			assert.equal(store.peekRecord('user', user_id), null, 'user is no longer in store, unload successfully');
+			assert.notEqual(store.peekRecord('picture', picture_id), null, 'picture should still be in store');
+			
+			option_ids.forEach(function(id) {
+				assert.notEqual(store.peekRecord('option', id), null, 'option should still be in store');
+			});
+			
+			done();
+		});
+		
+		QUnit.test('shallow async unload', function(assert) {
+			var done = assert.async();
+			
+			var user_id = unload_async_user.get('id');
+			
+			Ember.RSVP.Promise.resolve(unload_async_user.get('async_picture')).then(function(picture) {
+				var picture_id = picture.get('id');
+				
+				Ember.RSVP.Promise.resolve(unload_async_user.get('async_options')).then(function(options) {
+					var option_ids = options.mapBy('id');
+					
+					unload_async_user.unloadRecord();
+					
+					assert.equal(store.peekRecord('user', user_id), null, 'user is no longer in store, unload successfully');
+					assert.notEqual(store.peekRecord('picture', picture_id), null, 'picture should still be in store');
+					
+					option_ids.forEach(function(id) {
+						assert.notEqual(store.peekRecord('option', id), null, 'option should still be in store');
+					});
+					
+					done();
+				});
+			});
+		});
+		
+		QUnit.test('deep sync unload', function(assert) {
+			var done = assert.async();
+			
+			var user_id = unload_deep_user.get('id');
+			var picture_id = unload_deep_user.get('deep_picture').get('id');
+			var option_ids = unload_deep_user.get('deep_options').mapBy('id');
+			
+			unload_deep_user.unloadRecord();
+			
+			assert.equal(store.peekRecord('user', user_id), null, 'user is no longer in store, unload successfully');
+			assert.equal(store.peekRecord('picture', picture_id), null, 'picture is no longer in store, unload successfully');
+			
+			option_ids.forEach(function(id) {
+				assert.equal(store.peekRecord('option', id), null, 'option is no longer in store, unload successfully');
+			});
+			
+			done();
+		});
+		
+		QUnit.test('deep async unload', function(assert) {
+			var done = assert.async();
+			
+			var user_id = unload_deep_async_user.get('id');
+			
+			Ember.RSVP.Promise.resolve(unload_deep_async_user.get('deep_async_picture')).then(function(picture) {
+				var picture_id = picture.get('id');
+				
+				Ember.RSVP.Promise.resolve(unload_deep_async_user.get('deep_async_options')).then(function(options) {
+					var option_ids = options.mapBy('id');
+					
+					unload_deep_async_user.unloadRecord();
+					
+					assert.equal(store.peekRecord('user', user_id), null, 'user is no longer in store, unload successfully');
+					assert.equal(store.peekRecord('picture', picture_id), null, 'picture is no longer in store, unload successfully');
+					
+					option_ids.forEach(function(id) {
+						assert.equal(store.peekRecord('option', id), null, 'option is no longer in store, unload successfully');
+					});
+					
+					done();
 				});
 			});
 		});
