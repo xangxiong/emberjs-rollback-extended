@@ -264,11 +264,10 @@ define([
 		
 		var deep_async_user = store.peekRecord('user', deep_async_user_id);
 		var unload_deep_async_user = store.peekRecord('user', unload_deep_async_user_id);
-		
+	
 		// ##
 		// 2. start queuing up all shallow test cases
-		// ##
-		
+		// ##		
 		QUnit.test('shallow sync belongsto', function(assert) {
 			// 1. test property update on shallow belongsto relationship
 			var picture = user.get('picture');

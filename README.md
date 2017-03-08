@@ -1,7 +1,7 @@
 # emberjs-rollback-extended
-The EmberJS Rollback Extended mixin was originally inspired by the rollback-relationships.js made available by `amkirwan` at https://gist.github.com/amkirwan/.  The original rollback-relationship.js was missing a few features along with some issues integrating with my application.  I decided to allocate some of my development cycle into building this rollback extended mixin to provide the missing features my application needed.
+The EmberJS Rollback Extended mixin was originally inspired by the `rollback-relationships.js` made available by `amkirwan` at https://gist.github.com/amkirwan/.  The original `rollback-relationship.js` was missing a few features along with some issues integrating with my application.  I decided to allocate some of my development cycle into building this rollback extended mixin to provide the missing features my application needed.
 
-This mixin supports both deep and shallow relationship rollback, designated by the cascade.persist option along with automated saving.  This mixin now also supports the cascade.remove option which will automated deletion/unload of relationships.
+This mixin supports both deep and shallow relationship rollback, designated by the `cascade.persist` option along with automated saving.  This mixin now also supports the `cascade.remove` option which will automated deletion/unload of relationships.
 
 ## Supported Ember and EmberData versions
 - Tested on Ember 2.11.2 and EmberData 2.11.2
@@ -16,7 +16,7 @@ All relationships will default to be a shallow relationship.  Shallow relationsh
 All `save` on a model will not trigger a `save` on any of its shallow relationship models.
 
 ## Deep Relationship
-All relationships with the option cascade.persist will automatically be classify has deep.  Deep relationships will make the model referencing it dirty if the below scenario occurrs.
+All relationships with the option `cascade.persist` will automatically be classify has deep.  Deep relationships will make the model referencing it dirty if the below scenario occurrs.
 
 - BelongsTo becomes dirty
 - BelongsTo is changed

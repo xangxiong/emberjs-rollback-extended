@@ -160,14 +160,14 @@
 					
 					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
 						// this belongsto is already loaded, we can rollback
-						self._rollbackBelongsTo(key, false);
+						self._rollbackBelongsTo(key, false, meta.options && meta.options.cascade && meta.options.cascade.remove);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
 					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
 						// this hasmany is already loaded, we can rollback
-						self._rollbackHasMany(key, false);
+						self._rollbackHasMany(key, false, meta.options && meta.options.cascade && meta.options.cascade.remove);
 					}
 				}
 				
@@ -184,14 +184,14 @@
 					
 					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
 						// this belongsto is already loaded, we can rollback
-						self._rollbackBelongsTo(key, true);
+						self._rollbackBelongsTo(key, true, meta.options && meta.options.cascade && meta.options.cascade.remove);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
 					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
 						// this hasmany is already loaded, we can rollback
-						self._rollbackHasMany(key, true);
+						self._rollbackHasMany(key, true, meta.options && meta.options.cascade && meta.options.cascade.remove);
 					}
 				}
 				
@@ -207,9 +207,19 @@
 		},
 		
 		/**
+		 * General method to undelete a record that has been deleted, without rolling back attributes.  This method will just rollback the state to the previous state.
+		 * */
+		undeleteRecord: function() {
+			var currentState = this.get('currentState');
+			if(currentState && currentState.stateName == 'root.deleted.uncommitted'){
+				currentState.rolledBack(this._internalModel);
+			}
+		},
+		
+		/**
 		 * Internal belongsTo rollback, should not be call directly
 		 * */
-		_rollbackBelongsTo: function(key, deep) {
+		_rollbackBelongsTo: function(key, deep, remove) {
 			var self = this;
 			var meta = this.relationshipFor(key);
 			
@@ -223,8 +233,12 @@
 			var current_id = undefined;
 			
 			if(val) {
-				if(deep && val.get('isDirty') && !val.performingActivity('rollingback')) {
-					val.rollback();
+				if(val.get('isDirty') && !val.performingActivity('rollingback')) {
+					if(deep) {
+						val.rollback();
+					} else if(remove && val.get('isDeleted')) {
+						val.undeleteRecord();
+					}
 				}
 				
 				current_id = val.get('id');
@@ -238,8 +252,12 @@
 			} else if(original_id != current_id) {				
 				var record = this.store.peekRecord(meta.type, original_id);
 				if(record) {
-					if(deep && record.get('isDirty') && !record.performingActivity('rollingback')) {
-						record.rollback();
+					if(record.get('isDirty') && !record.performingActivity('rollingback')) {
+						if(deep) {
+							record.rollback();
+						} else if(remove && record.get('isDeleted')) {
+							record.undeleteRecord();
+						}
 					}
 					
 					this.set(key, record);
@@ -252,7 +270,7 @@
 		/**
 		 * Internal hasMany rollback, should not be call directly
 		 * */
-		_rollbackHasMany: function(key, deep) {
+		_rollbackHasMany: function(key, deep, remove) {
 			var self = this;
 			var meta = this.relationshipFor(key);
 			
@@ -264,10 +282,14 @@
 			}
 			
 			// invokes the rollback method on every element in the list
-			if(deep && list) {
+			if(list) {
 				list.forEach(function(item) {
 					if(!item.performingActivity('rollingback')) {
-						item.rollback();
+						if(deep) {
+							item.rollback();
+						} else if(remove && item.get('isDeleted')) {
+							item.undeleteRecord();
+						}
 					}
 				});
 			}
@@ -281,8 +303,12 @@
 				original_list.forEach(function(id) {
 					var record = self.store.peekRecord(meta.type, id);
 					if(record) {
-						if(deep && record.get('isDirty') && !record.performingActivity('rollingback')) {
-							record.rollback();
+						if(record.get('isDirty') && !record.performingActivity('rollingback')) {
+							if(deep) {
+								record.rollback();
+							} else if(remove && record.get('isDeleted')) {
+								record.undeleteRecord();
+							}
 						}
 						
 						new_list.pushObject(record);
