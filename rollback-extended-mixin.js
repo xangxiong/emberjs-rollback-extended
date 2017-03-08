@@ -226,7 +226,7 @@
 			deep = deep || false;		
 			
 			var val = this.get(key);
-			if(meta.options.async && val) {
+			if(meta.options.async !== false && val) {
 				val = val.get('content');
 			}
 			
@@ -277,7 +277,7 @@
 			deep = deep || false;
 			
 			var list = this.get(key);
-			if(meta.options.async && list) {
+			if(meta.options.async !== false && list) {
 				list = list.get('content');
 			}
 			
@@ -329,7 +329,7 @@
 				if(meta.kind === 'belongsTo') {
 					self.get('_originalRelationships').set(key, undefined);
 					
-					if(meta.options.async) {
+					if(meta.options.async !== false) {
 						var belongsTo = self.belongsTo(key);
 						
 						if(belongsTo.belongsToRelationship.hasLoaded) {
@@ -363,7 +363,7 @@
 				} else if(meta.kind === 'hasMany') {
 					self.get('_originalRelationships').set(key, []);
 					
-					if(meta.options.async) {
+					if(meta.options.async !== false) {
 						var hasMany = self.hasMany(key);
 						
 						if(hasMany.hasManyRelationship.hasLoaded) {
@@ -409,7 +409,7 @@
 			var current_value = this.get(key);
 			
 			if(this.isDeepRelationship(key)) {
-				if(meta.options.async) {
+				if(meta.options.async !== false) {
 					if(!current_value || (current_value.get('isFulfilled') && current_value.get('content') !== value)) {
 						// remove all observer for this key
 						this._removeKeyObserver(key);
@@ -438,7 +438,7 @@
 			}
 			
 			if(this.isDeepRelationship(key)) {
-				if(meta.options.async) {
+				if(meta.options.async !== false) {
 					if(!current_value || (current_value.get('isFulfilled') && current_value.get('content') !== value)) {
 						// initialize the new observer for this key
 						this._initializeObserver(key, meta);
@@ -479,7 +479,7 @@
 						var val = self.get(key);
 						
 						if(val) {
-							if(meta.options.async) {
+							if(meta.options.async !== false) {
 								val = val.get('content');
 							}
 							
@@ -496,7 +496,7 @@
 						var list = self.get(key);						
 						
 						if(list) {
-							if(meta.options.async) {
+							if(meta.options.async !== false) {
 								list = list.get('content');
 							}
 							
@@ -549,7 +549,7 @@
 							var val = self.get(key);
 							
 							if(val) {
-								if(meta.options.async) {
+								if(meta.options.async !== false) {
 									val = val.get('content');
 								}
 								
@@ -566,7 +566,7 @@
 							var list = self.get(key);							
 							
 							if(list) {
-								if(meta.options.async) {
+								if(meta.options.async !== false) {
 									list = list.get('content');
 								}
 								
@@ -600,7 +600,7 @@
 							var val = self.get(key);
 							
 							if(val) {
-								if(meta.options.async) {
+								if(meta.options.async !== false) {
 									val = val.get('content');
 								}
 								
@@ -617,7 +617,7 @@
 							var list = self.get(key);
 
 							if(list) {
-								if(meta.options.async) {
+								if(meta.options.async !== false) {
 									list = list.get('content');
 								}
 								
@@ -699,7 +699,7 @@
 				var current_val = this.get(key);
 				var meta = this.relationshipFor(key);
 				
-				if(meta.options.async) {
+				if(meta.options.async !== false) {
 					checker(current_val.get('content'));
 				} else {
 					checker(current_val);
@@ -748,7 +748,7 @@
 				var current_list = this.get(key);
 				var meta = this.relationshipFor(key);
 				
-				if(meta.options.async) {
+				if(meta.options.async !== false) {
 					checker(current_list.get('content'));
 				} else {
 					checker(current_list);
@@ -788,7 +788,7 @@
 			if(meta.kind === 'belongsTo') {
 				// we only care about observing deep belongsto
 				if(self.isDeepRelationship(key)) {
-					if(meta.options.async) {
+					if(meta.options.async !== false) {
 						var belongsTo = self.belongsTo(key);
 						
 						if(belongsTo.belongsToRelationship.hasLoaded) {
@@ -812,7 +812,7 @@
 			} else if(meta.kind === 'hasMany') {
 				var hasMany = self.hasMany(key);
 				
-				if(meta.options.async) {
+				if(meta.options.async !== false) {
 					var key_observer = key;
 					
 					if(self.isDeepRelationship(key)) {
