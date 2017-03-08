@@ -284,7 +284,7 @@
 			// invokes the rollback method on every element in the list
 			if(list) {
 				list.forEach(function(item) {
-					if(!item.performingActivity('rollingback')) {
+					if(item && !item.performingActivity('rollingback')) {
 						if(deep) {
 							item.rollback();
 						} else if(remove && item.get('isDeleted')) {
