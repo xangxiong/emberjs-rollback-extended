@@ -483,7 +483,7 @@
 								val = val.get('content');
 							}
 							
-							if(val.get('isDirty') && !val.performingActivity('saving')) {
+							if(val && val.get('isDirty') && !val.performingActivity('saving')) {
 								promises.push(val.save());
 							}
 						}
@@ -553,7 +553,7 @@
 									val = val.get('content');
 								}
 								
-								if(!val.performingActivity('deleting') && !val.get('isDeleted')) {
+								if(val && !val.performingActivity('deleting') && !val.get('isDeleted')) {
 									val.deleteRecord();
 								}
 							}
@@ -604,7 +604,7 @@
 									val = val.get('content');
 								}
 								
-								if(!val.performingActivity('unloading') && !val.get('isDestroyed')) {
+								if(val && !val.performingActivity('unloading') && !val.get('isDestroyed')) {
 									val.unloadRecord();
 								}
 							}
