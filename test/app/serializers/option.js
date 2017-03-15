@@ -1,13 +1,15 @@
 define([
 	'ember',
 	'ember-data',
-	'app'
+	'app',
+	'serializer-extended-mixin'
 ], function(
 	Ember,
 	EmberData,
-	App
+	App,
+	SerializerExtendedMixin
 ) {
-	App.OptionSerializer = EmberData.RESTSerializer.extend(EmberData.EmbeddedRecordsMixin, {
+	App.OptionSerializer = EmberData.RESTSerializer.extend(EmberData.EmbeddedRecordsMixin, SerializerExtendedMixin, {
 		attrs: {
 			user: {
 				serialize: 'ids',

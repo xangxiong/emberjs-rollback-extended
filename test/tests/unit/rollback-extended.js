@@ -267,7 +267,7 @@ define([
 	
 		// ##
 		// 2. start queuing up all shallow test cases
-		// ##		
+		// ##
 		QUnit.test('shallow sync belongsto', function(assert) {
 			// 1. test property update on shallow belongsto relationship
 			var picture = user.get('picture');
@@ -944,7 +944,164 @@ define([
 		});
 		
 		// ##
-		// 5. start queuing up all deletion test cases
+		// 5. start queuing up all save of attributes only test cases 
+		// ##
+		QUnit.test('shallow sync save attributes', function(assert) {
+			var done = assert.async();
+			
+			user.set('name', 'Xang2');
+			user.get('picture').set('url', 'https://test.io/xang-updated2.jpg');
+			user.get('options').findBy('name', 'icon').set('value', 'updated test icon2');
+			
+			user.save({
+				adapterOptions: {
+					ignoreRelationships: true
+				}
+			}).then(function() {
+				assert.equal(user.get('isDirty'), false, 'user is saved, should not be dirty');
+				assert.equal(user.get('picture').get('isDirty'), true, 'picture should still be dirty and not auto save');
+				assert.equal(user.get('options').findBy('name', 'icon').get('isDirty'), true, 'option icon should still be dirty and not auto save');				
+				
+				user.rollback();
+				
+				assert.equal(user.get('name'), 'Xang2', 'user still maintains saved name');
+				assert.equal(user.get('picture').get('isDirty'), true, 'picture should still be dirty since rollback should not affect');
+				assert.equal(user.get('options').findBy('name', 'icon').get('isDirty'), true, 'option icon should still be dirty since rollback should not affect');				
+				
+				// revert the updates
+				user.get('picture').rollback();
+				user.get('options').findBy('name', 'icon').rollback();
+				user.set('name', 'Xang');
+				
+				user.save({
+					adapterOptions: {
+						ignoreRelationships: true
+					}
+				}).then(function() {
+					done();
+				});
+			});
+		});
+		
+		QUnit.test('shallow async save attributes', function(assert) {
+			var done = assert.async();
+			
+			async_user.set('name', 'Xang2');
+			
+			Ember.RSVP.Promise.resolve(async_user.get('async_picture')).then(function(async_picture) {
+				async_picture.set('url', 'https://test.io/xang-updated2.jpg');
+				
+				Ember.RSVP.Promise.resolve(async_user.get('async_options')).then(function(async_options) {
+					async_options.findBy('name', 'icon').set('value', 'updated test icon2');
+					
+					async_user.save({
+						adapterOptions: {
+							ignoreRelationships: true
+						}
+					}).then(function() {
+						assert.equal(async_user.get('isDirty'), false, 'async user is saved, should not be dirty');
+						assert.equal(async_picture.get('isDirty'), true, 'async picture should still be dirty and not auto save');
+						assert.equal(async_options.findBy('name', 'icon').get('isDirty'), true, 'async option icon should still be dirty and not auto save');
+						
+						async_user.rollback();
+						
+						assert.equal(async_user.get('name'), 'Xang2', 'user still maintains saved name');
+						assert.equal(async_picture.get('isDirty'), true, 'async picture should still be dirty since rollback should not affect');
+						assert.equal(async_options.findBy('name', 'icon').get('isDirty'), true, 'async option icon should still be dirty since rollback should not affect');
+						
+						// revert the updates
+						async_picture.rollback();
+						async_options.findBy('name', 'icon').rollback();
+						async_user.set('name', 'Xang');
+						
+						async_user.save({
+							adapterOptions: {
+								ignoreRelationships: true
+							}
+						}).then(function() {
+							done();
+						});
+					});
+				});
+			});
+		});
+		
+		QUnit.test('deep sync save attributes', function(assert) {
+			var done = assert.async();
+			
+			deep_user.set('name', 'Xang2');
+			deep_user.get('deep_picture').set('url', 'https://test.io/xang-updated2.jpg');
+			deep_user.get('deep_options').findBy('name', 'icon').set('value', 'updated test icon2');
+			
+			deep_user.save({
+				adapterOptions: {
+					ignoreRelationships: true
+				}
+			}).then(function() {
+				assert.equal(deep_user.get('isDirty'), true, 'deep user is still dirty since relationships should still be dirty');
+				assert.equal(deep_user.get('deep_picture').get('isDirty'), true, 'deep picture should still be dirty and not auto save');
+				assert.equal(deep_user.get('deep_options').findBy('name', 'icon').get('isDirty'), true, 'deep option icon should still be dirty and not auto save');				
+				
+				deep_user.rollback();
+				
+				assert.equal(deep_user.get('name'), 'Xang2', 'deep user still maintains saved name');
+				assert.equal(deep_user.get('deep_picture').get('isDirty'), false, 'deep picture should no longer be dirty');
+				assert.equal(deep_user.get('deep_options').findBy('name', 'icon').get('isDirty'), false, 'deep option icon should no longer be dirty');				
+				
+				// revert the updates
+				deep_user.set('name', 'Xang');
+				deep_user.save({
+					adapterOptions: {
+						ignoreRelationships: true
+					}
+				}).then(function() {
+					done();
+				});
+			});
+		});
+		
+		QUnit.test('deep async save attributes', function(assert) {
+			var done = assert.async();
+			
+			deep_async_user.set('name', 'Xang2');
+			
+			Ember.RSVP.Promise.resolve(deep_async_user.get('deep_async_picture')).then(function(deep_async_picture) {
+				deep_async_picture.set('url', 'https://test.io/xang-updated2.jpg');
+				
+				Ember.RSVP.Promise.resolve(deep_async_user.get('deep_async_options')).then(function(deep_async_options) {
+					deep_async_options.findBy('name', 'icon').set('value', 'updated test icon2');
+					
+					deep_async_user.save({
+						adapterOptions: {
+							ignoreRelationships: true
+						}
+					}).then(function() {
+						assert.equal(deep_async_user.get('isDirty'), true, 'deep async user is still dirty since relationships should still be dirty');
+						assert.equal(deep_async_picture.get('isDirty'), true, 'deep async picture should still be dirty and not auto save');
+						assert.equal(deep_async_options.findBy('name', 'icon').get('isDirty'), true, 'deep async option icon should still be dirty and not auto save');
+						
+						deep_async_user.rollback();
+						
+						assert.equal(deep_async_user.get('name'), 'Xang2', 'deep async user still maintains saved name');
+						assert.equal(deep_async_picture.get('isDirty'), false, 'deep async picture should no longer be dirty');
+						assert.equal(deep_async_options.findBy('name', 'icon').get('isDirty'), false, 'deep async option icon should no longer be dirty');
+						
+						// revert the updates
+						deep_async_user.set('name', 'Xang');
+						deep_async_user.save({
+							adapterOptions: {
+								ignoreRelationships: true
+							}
+						}).then(function() {
+							done();
+						});
+					});
+				});
+			});
+		});
+		
+		// ##
+		// 6. start queuing up all deletion test cases
 		// ##
 		QUnit.test('shallow sync deletion', function(assert) {
 			var done = assert.async();
@@ -1077,7 +1234,7 @@ define([
 		});
 		
 		// ##
-		// 6. start queuing up all unloading test cases
+		// 7. start queuing up all unloading test cases
 		// ##
 		QUnit.test('shallow sync unload', function(assert) {
 			var done = assert.async();

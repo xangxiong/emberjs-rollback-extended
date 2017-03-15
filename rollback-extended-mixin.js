@@ -142,8 +142,6 @@
 		
 		/**
 		 * Rollback any unsaved changes
-		 *
-		 * @todo How do we just rollback deep relationship and undelete shallow relationship with the remove=true?
 		 * */
 		rollback: function() {
 			var self = this;
@@ -154,20 +152,21 @@
 			// rollback all shallow relationships
 			this.get('_shallowRelationships').forEach(function(key) {
 				var meta = self.relationshipFor(key);
+				var remove = meta.options && meta.options.cascade && meta.options.cascade.remove;
 				
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
 					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
 						// this belongsto is already loaded, we can rollback
-						self._rollbackBelongsTo(key, false, meta.options && meta.options.cascade && meta.options.cascade.remove);
+						self._rollbackBelongsTo(key, false, remove);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
 					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
 						// this hasmany is already loaded, we can rollback
-						self._rollbackHasMany(key, false, meta.options && meta.options.cascade && meta.options.cascade.remove);
+						self._rollbackHasMany(key, false, remove);
 					}
 				}
 				
@@ -178,20 +177,21 @@
 			// rollback all deep relationships
 			this.get('_deepRelationships').forEach(function(key) {
 				var meta = self.relationshipFor(key);
+				var remove = meta.options && meta.options.cascade && meta.options.cascade.remove
 				
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
 					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
 						// this belongsto is already loaded, we can rollback
-						self._rollbackBelongsTo(key, true, meta.options && meta.options.cascade && meta.options.cascade.remove);
+						self._rollbackBelongsTo(key, true, remove);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
 					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
 						// this hasmany is already loaded, we can rollback
-						self._rollbackHasMany(key, true, meta.options && meta.options.cascade && meta.options.cascade.remove);
+						self._rollbackHasMany(key, true, remove);
 					}
 				}
 				
@@ -459,77 +459,107 @@
 			return ret;
 		},
 		
+		saveAttributes: function() {
+			return this.save({
+				adapterOptions: {
+					ignoreRelationships: true
+				}
+			});
+		},
+		
 		save: function(options) {
 			var self = this;
 			
 			// enable the saving back flag
 			this.startActivity('saving');
 			
-			var promises = [];
-			
-			// save all deep relationships first
-			this.get('_deepRelationships').forEach(function(key) {
-				var meta = self.relationshipFor(key);
+			if(options && options.adapterOptions && options.adapterOptions.ignoreRelationships === true) {
+				// saving of relationships are ignore, we will not attempt to traverse the relationships and save them
+				var promise = this._super.apply(this, arguments);
 				
-				if(meta.kind === 'belongsTo') {
-					var belongsTo = self.belongsTo(key);
-					
-					if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
-						// this belongsto is already loaded, we can save
-						var val = self.get(key);
-						
-						if(val) {
-							if(meta.options.async !== false) {
-								val = val.get('content');
-							}
-							
-							if(val && val.get('isDirty') && !val.performingActivity('saving')) {
-								promises.push(val.save());
-							}
+				return new Ember.RSVP.Promise(function(resolve, reject) {
+					Ember.RSVP.Promise.resolve(promise).then(function() {
+						// we will need mark this as no longer dirty
+						if(self.get('_dirtyRelationships').length == 0) {
+							self.set('isDirty', false);
 						}
-					}
-				} else if(meta.kind === 'hasMany') {
-					var hasMany = self.hasMany(key);
-					
-					if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
-						// this hasmany is already loaded, we can rollback
-						var list = self.get(key);						
 						
-						if(list) {
-							if(meta.options.async !== false) {
-								list = list.get('content');
-							}
+						// disable the rolling back flag
+						self.endActivity('saving');
+						
+						resolve();
+					}, function(error) {
+						self.endActivity('saving');
+						reject(error);
+					});
+				});
+			} else {
+				var promises = [];
+				
+				// save all deep relationships first
+				this.get('_deepRelationships').forEach(function(key) {
+					var meta = self.relationshipFor(key);
+					
+					if(meta.kind === 'belongsTo') {
+						var belongsTo = self.belongsTo(key);
+						
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+							// this belongsto is already loaded, we can save
+							var val = self.get(key);
 							
-							list.forEach(function(val) {
+							if(val) {
+								if(meta.options.async !== false) {
+									val = val.get('content');
+								}
+								
 								if(val && val.get('isDirty') && !val.performingActivity('saving')) {
 									promises.push(val.save());
 								}
-							});
+							}
+						}
+					} else if(meta.kind === 'hasMany') {
+						var hasMany = self.hasMany(key);
+						
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+							// this hasmany is already loaded, we can rollback
+							var list = self.get(key);						
+							
+							if(list) {
+								if(meta.options.async !== false) {
+									list = list.get('content');
+								}
+								
+								list.forEach(function(val) {
+									if(val && val.get('isDirty') && !val.performingActivity('saving')) {
+										promises.push(val.save());
+									}
+								});
+							}
 						}
 					}
-				}
-			});
-			
-			promises.push(this._super.apply(this, arguments));
-			
-			return new Ember.RSVP.Promise(function(resolve, reject) {
-				Ember.RSVP.Promise.all(promises).then(function() {
-					// we will need to clear the dirty tracking
-					self.set('_dirtyRelationships', Ember.A());
-					self.set('_originalRelationships', Ember.Object.create());
-					self.set('isDirty', false);
-					
-					self._captureRelationships();
-					
-					// disable the rolling back flag
-					self.endActivity('saving');
-					
-					resolve();
-				}, function(error) {
-					self.endActivity('saving');
-					reject(error);
 				});
-			});
+				
+				promises.push(this._super.apply(this, arguments));
+				
+				return new Ember.RSVP.Promise(function(resolve, reject) {
+					Ember.RSVP.Promise.all(promises).then(function() {
+						// we will need to clear the dirty tracking
+						self.set('_dirtyRelationships', Ember.A());
+						self.set('_originalRelationships', Ember.Object.create());
+						self.set('isDirty', false);
+						
+						self._captureRelationships();
+						
+						// disable the rolling back flag
+						self.endActivity('saving');
+						
+						resolve();
+					}, function(error) {
+						self.endActivity('saving');
+						reject(error);
+					});
+				});
+			}
 		},
 		
 		deleteRecord: function() {			

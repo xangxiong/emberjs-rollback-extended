@@ -9,6 +9,7 @@ requirejs.config({
 		'qunit'								: '../../bower_components/qunit/qunit/qunit',
 		'rollback-extended'					: '../../rollback-extended',
 		'rollback-extended-mixin'			: '../../rollback-extended-mixin',
+		'serializer-extended-mixin'			: '../../serializer-extended-mixin',
 		
 		'tests'								: 'tests'
 	},

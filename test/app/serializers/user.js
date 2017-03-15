@@ -1,13 +1,15 @@
 define([
 	'ember',
-	'ember-data',
-	'app'
+	'ember-data',	
+	'app',
+	'serializer-extended-mixin'
 ], function(
 	Ember,
 	EmberData,
-	App
+	App,
+	SerializerExtendedMixin
 ) {
-	App.UserSerializer = EmberData.RESTSerializer.extend(EmberData.EmbeddedRecordsMixin, {
+	App.UserSerializer = EmberData.RESTSerializer.extend(EmberData.EmbeddedRecordsMixin, SerializerExtendedMixin, {
 		attrs: {
 			picture: {
 				serialize: 'ids',
