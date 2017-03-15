@@ -55,7 +55,7 @@
 		serialize: function(snapshot, options) {
 			var json = this._super.apply(this, arguments);
 			
-			if(options.ignoreRelationships === true || (snapshot.adapterOptions && snapshot.adapterOptions.ignoreRelationships === true)) {
+			if((options && options.ignoreRelationships === true) || (snapshot.adapterOptions && snapshot.adapterOptions.ignoreRelationships === true)) {
 				snapshot.eachRelationship(function(name, relationship) {
 					delete json[name];
 				});
