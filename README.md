@@ -30,6 +30,24 @@ All `save` on a model will also trigger a `save` on any of its deep relationship
 ## Cascading Remove
 The `cascade.remove` flag will enable the relationship to auto trigger and cascade the `deleteRecord` and `unloadRecord` calls.  The `cascade.remove` by itself will not be able to handle the `destroyRecord` call as this method requires the `cascade.persist` to be enabled as well.  Calling the `destroyRecord` on a model will only mark all subsequent models as deleted, a specific `save` will be require to be invoke on each model to complete the `destroyRecord`.
 
+## Cascading Save
+The `cascade.persist` flag will enable the relationship to auto trigger and cascade the `save` calls.
+
+### Saving only Attributes
+There may times where attributes will need to be save without cascading the save to all deep relationships.  To avoid cascading the deep relationship save, pass the `adapterOptions.ignoreRelationships` as part of the save `option`.
+
+    user.save({
+		adapterOptions: {
+			ignoreRelationships: true
+		}
+	})
+	
+The `saveAttributes` may also be use for a cleaner call.
+
+	user.saveAttributes();
+
+### When the `adapterOptions.ignoreRelationships` is `true`, the model will just ignore cascading the `save` calls on all deep relationships.  It is still up to the developer to make sure the `serializer` or `adapter` is configured properly to accept the `adaptionOptions.ignoreRelationships` and remove any relationships serialized.  The `serializer-extended-mixin` is provided as a quick drop in mixin to any Ember serializer.  This serializer mixin will remove any relationship from the serialized json object and add a property `_igrel` to the json object.  This flag can be use to communicate with the backend that relationships has been ignored in the save call.
+
 ## Usage
 To apply the mixin to all DS.Model, load the `rollback-extended`.  Otherwise add the `rollback-extended-mixin` to any model needing this feature.
 
