@@ -46,7 +46,7 @@ The `saveAttributes` may also be use for a cleaner call.
 
 	user.saveAttributes();
 
-### When the `adapterOptions.ignoreRelationships` is `true`, the model will just ignore cascading the `save` calls on all deep relationships.  It is still up to the developer to make sure the `serializer` or `adapter` is configured properly to accept the `adaptionOptions.ignoreRelationships` and remove any relationships serialized.  The `serializer-extended-mixin` is provided as a quick drop in mixin to any Ember serializer.  This serializer mixin will remove any relationship from the serialized json object and add a property `_igrel` to the json object.  This flag can be use to communicate with the backend that relationships has been ignored in the save call.
+When the `adapterOptions.ignoreRelationships` is `true`, the model will just ignore cascading the `save` calls on all deep relationships.  It is still up to the developer to make sure the `serializer` or `adapter` is configured properly to accept the `adaptionOptions.ignoreRelationships` and remove any relationships serialized.  The `serializer-extended-mixin` is provided as a quick drop in mixin to any Ember serializer.  This serializer mixin will remove any relationship from the serialized json object and add a property `_igrel` to the json object.  This flag can be use to communicate with the backend that relationships has been ignored in the save call.
 
 ## Usage
 To apply the mixin to all DS.Model, load the `rollback-extended`.  Otherwise add the `rollback-extended-mixin` to any model needing this feature.
