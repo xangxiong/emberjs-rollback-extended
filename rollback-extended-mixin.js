@@ -157,14 +157,14 @@
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
-					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
+					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, false, remove);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
-					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
+					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData)) {
 						// this hasmany is already loaded, we can rollback
 						self._rollbackHasMany(key, false, remove);
 					}
@@ -182,14 +182,14 @@
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
-					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded)) {
+					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || hasMany.belongsToRelationship.hasData)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, true, remove);
 					}
 				} else if(meta.kind === 'hasMany') {
 					var hasMany = self.hasMany(key);
 					
-					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded)) {
+					if((meta.options.async === false || hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData)) {
 						// this hasmany is already loaded, we can rollback
 						self._rollbackHasMany(key, true, remove);
 					}
@@ -332,7 +332,7 @@
 					if(meta.options.async !== false) {
 						var belongsTo = self.belongsTo(key);
 						
-						if(belongsTo.belongsToRelationship.hasLoaded) {
+						if(belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData) {
 							// this async property is already loaded, we should start capture it
 							self.get(key).then(function(val) {
 								val = (val) ? val.get('id') : undefined;
@@ -342,10 +342,25 @@
 						} else {
 							// this async property is not loaded yet, we should add an observer to it
 							var oldHasLoaded = belongsTo.belongsToRelationship.setHasLoaded;
+							var oldHasData = belongsTo.belongsToRelationship.setHasData;
+							
 							belongsTo.belongsToRelationship.setHasLoaded = function(value) {
 								// restore the old has loaded function
 								belongsTo.belongsToRelationship.setHasLoaded = oldHasLoaded;
+								belongsTo.belongsToRelationship.setHasData = oldHasData;
 								belongsTo.belongsToRelationship.setHasLoaded(value);
+								
+								self.get(key).then(function(val) {
+									val = (val) ? val.get('id') : undefined;
+									
+									self.get('_originalRelationships').set(key, val);
+								});
+							};
+							belongsTo.belongsToRelationship.setHasData = function(value) {
+								// restore the old has loaded function
+								belongsTo.belongsToRelationship.setHasLoaded = oldHasLoaded;
+								belongsTo.belongsToRelationship.setHasData = oldHasData;
+								belongsTo.belongsToRelationship.setHasData(value);
 								
 								self.get(key).then(function(val) {
 									val = (val) ? val.get('id') : undefined;
@@ -366,7 +381,7 @@
 					if(meta.options.async !== false) {
 						var hasMany = self.hasMany(key);
 						
-						if(hasMany.hasManyRelationship.hasLoaded) {
+						if(hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData) {
 							// this async property is already loaded, we should start capture it
 							self.get(key).then(function(list) {
 								self.get('_originalRelationships').set(key, list.without(undefined).sortBy('id').mapBy('id'));
@@ -374,10 +389,23 @@
 						} else {
 							// this async property is not loaded yet, we should add an observer to it
 							var oldHasLoaded = hasMany.hasManyRelationship.setHasLoaded;
+							var oldHasData = hasMany.hasManyRelationship.setHasData;
+							
 							hasMany.hasManyRelationship.setHasLoaded = function(value) {
 								// restore the old has loaded function
 								hasMany.hasManyRelationship.setHasLoaded = oldHasLoaded;
+								hasMany.hasManyRelationship.setHasData = oldHasData;
 								hasMany.hasManyRelationship.setHasLoaded(value);
+								
+								self.get(key).then(function(list) {
+									self.get('_originalRelationships').set(key, list.without(undefined).sortBy('id').mapBy('id'));
+								});
+							};
+							hasMany.hasManyRelationship.setHasData = function(value) {
+								// restore the old has loaded function
+								hasMany.hasManyRelationship.setHasLoaded = oldHasLoaded;
+								hasMany.hasManyRelationship.setHasData = oldHasData;
+								hasMany.hasManyRelationship.setHasData(value);
 								
 								self.get(key).then(function(list) {
 									self.get('_originalRelationships').set(key, list.without(undefined).sortBy('id').mapBy('id'));
@@ -503,7 +531,7 @@
 					if(meta.kind === 'belongsTo') {
 						var belongsTo = self.belongsTo(key);
 						
-						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData) {
 							// this belongsto is already loaded, we can save
 							var val = self.get(key);
 							
@@ -520,7 +548,7 @@
 					} else if(meta.kind === 'hasMany') {
 						var hasMany = self.hasMany(key);
 						
-						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData) {
 							// this hasmany is already loaded, we can rollback
 							var list = self.get(key);						
 							
@@ -574,7 +602,7 @@
 					if(meta.kind == 'belongsTo') {
 						var belongsTo = self.belongsTo(key);
 						
-						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData) {
 							// this belongsto is already loaded, we can delete it
 							var val = self.get(key);
 							
@@ -591,7 +619,7 @@
 					} else if(meta.kind == 'hasMany') {
 						var hasMany = self.hasMany(key);
 						
-						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData) {
 							// this hasmany is already loaded, we can rollback
 							var list = self.get(key);							
 							
@@ -625,7 +653,7 @@
 					if(meta.kind == 'belongsTo') {
 						var belongsTo = self.belongsTo(key);
 						
-						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded) {
+						if(meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData) {
 							// this belongsto is already loaded, we can delete it
 							var val = self.get(key);
 							
@@ -642,7 +670,7 @@
 					} else if(meta.kind == 'hasMany') {
 						var hasMany = self.hasMany(key);
 						
-						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded) {
+						if(meta.options.async === false || hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData) {
 							// this hasmany is already loaded, we can rollback
 							var list = self.get(key);
 
@@ -821,16 +849,27 @@
 					if(meta.options.async !== false) {
 						var belongsTo = self.belongsTo(key);
 						
-						if(belongsTo.belongsToRelationship.hasLoaded) {
+						if(belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData) {
 							// this async property is already loaded, we should start monitoring it
 							self._addKeyObserver(key, self.get(key), 'content.isDirty', self._belongsToDirtyChecker);
 						} else {
 							// this async property is not loaded yet, we should add an observer to it
 							var oldHasLoaded = belongsTo.belongsToRelationship.setHasLoaded;
+							var oldHasData = belongsTo.belongsToRelationship.setHasData;
+							
 							belongsTo.belongsToRelationship.setHasLoaded = function(value) {
 								// set the hasLoaded and then restore the old has loaded function
 								belongsTo.belongsToRelationship.setHasLoaded = oldHasLoaded;
+								belongsTo.belongsToRelationship.setHasData = oldHasData;
 								belongsTo.belongsToRelationship.setHasLoaded(value);
+								
+								self._addKeyObserver(key, self.get(key), 'content.isDirty', self._belongsToDirtyChecker);
+							};
+							belongsTo.belongsToRelationship.setHasData = function(value) {
+								// set the hasLoaded and then restore the old has loaded function
+								belongsTo.belongsToRelationship.setHasLoaded = oldHasLoaded;
+								belongsTo.belongsToRelationship.setHasData = oldHasData;
+								belongsTo.belongsToRelationship.setHasData(value);
 								
 								self._addKeyObserver(key, self.get(key), 'content.isDirty', self._belongsToDirtyChecker);
 							};
@@ -851,16 +890,27 @@
 						key_observer = 'content.[]';
 					}
 					
-					if(hasMany.hasManyRelationship.hasLoaded) {
+					if(hasMany.hasManyRelationship.hasLoaded || hasMany.hasManyRelationship.hasData) {
 						// this async property is already loaded, we should start monitoring it
 						self._addKeyObserver(key, self.get(key), key_observer, self._hasManyDirtyChecker);
 					} else {
 						// this async property is not loaded yet, we should add an observer to it
 						var oldHasLoaded = hasMany.hasManyRelationship.setHasLoaded;
+						var oldHasData = hasMany.hasManyRelationship.setHasData;
+						
 						hasMany.hasManyRelationship.setHasLoaded = function(value) {
 							// set the hasLoaded and then restore the old has loaded function
 							hasMany.hasManyRelationship.setHasLoaded = oldHasLoaded;
+							hasMany.hasManyRelationship.setHasData = oldHasData;
 							hasMany.hasManyRelationship.setHasLoaded(value);
+							
+							self._addKeyObserver(key, self.get(key), key_observer, self._hasManyDirtyChecker);
+						};
+						hasMany.hasManyRelationship.setHasData = function(value) {
+							// set the hasData and then restore the old has data function
+							hasMany.hasManyRelationship.setHasLoaded = oldHasLoaded;
+							hasMany.hasManyRelationship.setHasData = oldHasData;
+							hasMany.hasManyRelationship.setHasData(value);
 							
 							self._addKeyObserver(key, self.get(key), key_observer, self._hasManyDirtyChecker);
 						};
