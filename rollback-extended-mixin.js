@@ -182,7 +182,7 @@
 				if(meta.kind === 'belongsTo') {
 					var belongsTo = self.belongsTo(key);
 					
-					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || hasMany.belongsToRelationship.hasData)) {
+					if((meta.options.async === false || belongsTo.belongsToRelationship.hasLoaded || belongsTo.belongsToRelationship.hasData)) {
 						// this belongsto is already loaded, we can rollback
 						self._rollbackBelongsTo(key, true, remove);
 					}
